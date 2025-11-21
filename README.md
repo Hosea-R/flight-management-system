@@ -162,11 +162,11 @@ npm run preview    # Prévisualiser le build
 Ce projet est en développement actif. Les phases de développement sont :
 
 1. ✅ Phase 0 : Setup & Préparation
-2. 🔄 Phase 1 : Authentification & Modèles
-3. ⏳ Phase 2 : Gestion Aéroports & Compagnies
-4. ⏳ Phase 3 : Gestion des Vols
-5. ⏳ Phase 4 : Temps Réel
-6. ⏳ Phase 5 : Écrans Publics
+2. ✅ Phase 1 : Authentification & Modèles
+3. ✅ Phase 2 : Gestion Aéroports & Compagnies
+4. ✅ Phase 3 : Gestion des Vols
+5. ✅ Phase 4 : Temps Réel
+6. 🔄 Phase 5 : Écrans Publics
 7. ⏳ Phase 6-14 : Voir documentation complète
 
 ## 📄 Licence
@@ -183,4 +183,4 @@ Pour toute question ou problème : support@flights.aviation.mg
 
 ---
 
-**Statut du Projet** : 🟢 Phase 0 Complétée | 🔄 Phase 1 En Cours
+**Statut du Projet** : 🟢 Phase 0 Complétée | 🟢 Phase 1 Complétée | 🔄 Phase 2 en cours

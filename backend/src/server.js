@@ -55,11 +55,11 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Routes API (seront ajoutées progressivement)
-// app.use('/api/auth', require('./routes/auth.routes'));
-// app.use('/api/airports', require('./routes/airports.routes'));
-// app.use('/api/airlines', require('./routes/airlines.routes'));
-// app.use('/api/flights', require('./routes/flights.routes'));
+// Routes API
+app.use('/api/auth', require('./routes/auth.routes'));
+app.use('/api/airports', require('./routes/airports.routes'));
+app.use('/api/airlines', require('./routes/airlines.routes'));
+app.use('/api/flights', require('./routes/flights.routes'));
 // app.use('/api/users', require('./routes/users.routes'));
 
 // Gestion des erreurs 404
@@ -86,19 +86,56 @@ io.on('connection', (socket) => {
 
   // Le client rejoint une room d'aéroport
   socket.on('join:airport', (airportCode) => {
-    socket.join(airportCode);
-    console.log(`Client ${socket.id} a rejoint la room: ${airportCode}`);
+    if (airportCode) {
+      socket.join(airportCode.toUpperCase());
+      console.log(`📍 Client ${socket.id} a rejoint la room: ${airportCode.toUpperCase()}`);
+      
+      // Confirmer la connexion au client
+      socket.emit('joined:airport', {
+        success: true,
+        airportCode: airportCode.toUpperCase(),
+        message: `Connecté à l'aéroport ${airportCode}`
+      });
+    }
   });
 
   // Le client quitte une room d'aéroport
   socket.on('leave:airport', (airportCode) => {
-    socket.leave(airportCode);
-    console.log(`Client ${socket.id} a quitté la room: ${airportCode}`);
+    if (airportCode) {
+      socket.leave(airportCode.toUpperCase());
+      console.log(`📍 Client ${socket.id} a quitté la room: ${airportCode.toUpperCase()}`);
+      
+      socket.emit('left:airport', {
+        success: true,
+        airportCode: airportCode.toUpperCase()
+      });
+    }
+  });
+
+  // Le client rejoint la room globale (pour SuperAdmin)
+  socket.on('join:global', () => {
+    socket.join('GLOBAL');
+    console.log(`🌍 Client ${socket.id} a rejoint la room GLOBAL`);
+    
+    socket.emit('joined:global', {
+      success: true,
+      message: 'Connecté au flux global'
+    });
+  });
+
+  // Ping pour vérifier la connexion
+  socket.on('ping', () => {
+    socket.emit('pong', { timestamp: new Date().toISOString() });
   });
 
   // Déconnexion
   socket.on('disconnect', () => {
     console.log('❌ Client déconnecté:', socket.id);
+  });
+
+  // Gestion des erreurs
+  socket.on('error', (error) => {
+    console.error('❌ Erreur Socket.io:', error);
   });
 });
 
