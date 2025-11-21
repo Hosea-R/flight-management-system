@@ -102,3 +102,7 @@ exports.checkAirportAccess = (req, res, next) => {
 
   next();
 };
+
+// Alias pour compatibilité avec d'autres routes
+exports.verifyToken = exports.protect;
+exports.isSuperAdmin = exports.authorize('superadmin');

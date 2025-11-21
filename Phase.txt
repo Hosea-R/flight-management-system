@@ -1,0 +1,1549 @@
+🎯 PHASE 0 : SETUP & PRÉPARATION (2-3 jours)
+Objectif : Mettre en place l'environnement de développement
+✅ Tâches Backend
+
+Initialisation du projet
+
+bash   mkdir flight-management-system
+   cd flight-management-system
+   mkdir backend frontend
+
+Setup Backend
+
+bash   cd backend
+   npm init -y
+   npm install express mongoose socket.io jsonwebtoken bcryptjs cors dotenv express-validator moment-timezone
+   npm install -D nodemon
+
+Structure des dossiers backend
+
+Créer l'arborescence complète (src/, models/, controllers/, etc.)
+Configurer .env (PORT, MONGO_URI, JWT_SECRET)
+Configurer nodemon.json
+
+
+MongoDB Atlas
+
+Créer un compte MongoDB Atlas
+Créer un cluster gratuit
+Obtenir l'URI de connexion
+Créer la base de données flight_management_db
+
+
+
+✅ Tâches Frontend
+
+Setup Frontend avec Vite
+
+bash   cd frontend
+   npm create vite@latest . -- --template react
+   npm install
+   npm install react-router-dom axios socket.io-client moment react-query zustand lucide-react
+   npm install -D tailwindcss postcss autoprefixer
+   npx tailwindcss init -p
+
+Configuration Tailwind
+
+Configurer tailwind.config.js
+Importer Tailwind dans index.css
+
+
+Structure des dossiers frontend
+
+Créer l'arborescence complète
+
+
+
+📦 Livrables Phase 0
+
+✅ Projets initialisés
+✅ Dépendances installées
+✅ MongoDB Atlas configuré
+✅ Structure des dossiers prête
+
+
+🔐 PHASE 1 : AUTHENTIFICATION & MODÈLES DE BASE (3-4 jours)
+Objectif : Créer le système d'authentification et les modèles de données
+✅ Backend
+1.1 Modèles Mongoose
+Priorité : CRITIQUE
+
+models/User.js : Modèle utilisateur avec rôles
+models/Airport.js : Modèle aéroport
+models/Airline.js : Modèle compagnie aérienne
+models/Flight.js : Modèle vol (le plus complexe)
+
+1.2 Configuration Database
+
+config/database.js : Connexion MongoDB avec Mongoose
+Gestion des erreurs de connexion
+Index sur les champs importants
+
+1.3 Authentification JWT
+
+controllers/authController.js :
+
+register() : Inscription (uniquement superadmin peut créer des admins)
+login() : Connexion avec JWT
+getMe() : Récupérer profil utilisateur
+
+
+middleware/auth.middleware.js : Vérification du token JWT
+middleware/role.middleware.js : Vérification des rôles
+routes/auth.routes.js : Routes d'authentification
+
+1.4 Données de seed (initialisation)
+
+Script pour créer le premier SuperAdmin
+Script pour créer les aéroports de Madagascar
+Script pour créer quelques compagnies
+
+✅ Frontend
+1.5 Page de Login
+
+pages/Login.jsx : Formulaire de connexion
+services/api.js : Configuration Axios avec intercepteurs
+services/authService.js : Fonctions login/logout
+context/AuthContext.jsx : Gestion globale de l'authentification
+
+1.6 Routes protégées
+
+App.jsx : Configuration React Router
+Composant ProtectedRoute
+Redirection selon le rôle (superadmin/admin)
+
+📦 Livrables Phase 1
+
+✅ Modèles MongoDB créés et testés
+✅ API d'authentification fonctionnelle
+✅ Login frontend opérationnel
+✅ JWT stocké et utilisé
+✅ Routes protégées par rôle
+
+🧪 Tests Phase 1
+
+Tester création d'utilisateur avec Postman
+Tester login et récupération du token
+Vérifier que les routes protégées refusent l'accès sans token
+
+
+🏢 PHASE 2 : GESTION DES AÉROPORTS & COMPAGNIES (3-4 jours)
+Objectif : CRUD complet pour aéroports et compagnies (SuperAdmin)
+✅ Backend
+2.1 Contrôleurs Aéroports
+
+controllers/airportController.js :
+
+getAllAirports() : Liste tous les aéroports
+getAirportByCode() : Détails d'un aéroport
+createAirport() : Créer (superadmin only)
+updateAirport() : Modifier (superadmin only)
+deleteAirport() : Supprimer (superadmin only)
+getAirportStats() : Statistiques (vols actifs, etc.)
+
+
+
+2.2 Routes Aéroports
+
+routes/airports.routes.js : Routes avec middlewares de protection
+
+2.3 Contrôleurs Compagnies
+
+controllers/airlineController.js :
+
+getAllAirlines() : Liste toutes les compagnies
+getAirlineById() : Détails d'une compagnie
+createAirline() : Créer (superadmin only)
+updateAirline() : Modifier (superadmin only)
+deleteAirline() : Supprimer (superadmin only)
+
+
+
+2.4 Routes Compagnies
+
+routes/airlines.routes.js
+
+✅ Frontend
+2.5 Gestion Aéroports (SuperAdmin)
+
+pages/SuperAdmin/Airports.jsx : Page principale
+components/airports/AirportList.jsx : Liste des aéroports
+components/airports/AirportCard.jsx : Carte d'aéroport
+components/airports/AirportForm.jsx : Formulaire création/édition
+components/airports/AirportModal.jsx : Modal pour formulaire
+
+2.6 Gestion Compagnies (SuperAdmin)
+
+pages/SuperAdmin/Airlines.jsx
+components/airlines/AirlineList.jsx
+components/airlines/AirlineCard.jsx
+components/airlines/AirlineForm.jsx
+components/airlines/AirlineModal.jsx
+
+2.7 Services Frontend
+
+services/airportService.js : Appels API aéroports
+services/airlineService.js : Appels API compagnies
+
+📦 Livrables Phase 2
+
+✅ CRUD aéroports complet (backend + frontend)
+✅ CRUD compagnies complet (backend + frontend)
+✅ Interface SuperAdmin fonctionnelle
+✅ Validation des données
+
+🧪 Tests Phase 2
+
+Créer, modifier, supprimer des aéroports
+Créer, modifier, supprimer des compagnies
+Vérifier que seul le superadmin peut effectuer ces actions
+
+
+✈️ PHASE 3 : GESTION DES VOLS - LOGIQUE MÉTIER (5-6 jours)
+Objectif : Implémenter la logique complexe de création et gestion des vols
+✅ Backend
+3.1 Service de Gestion des Vols
+Priorité : CRITIQUE - C'est le cœur du système
+
+services/flightService.js :
+
+javascript  // Fonctions principales
+  - createDepartureFlight(flightData, userId)
+    → Crée un départ
+    → Crée automatiquement l'arrivée correspondante
+    → Lie les deux vols avec linkedFlightId
+    
+  - updateFlightStatus(flightId, newStatus, userId)
+    → Met à jour le statut d'un vol
+    → Synchronise automatiquement le vol lié
+    → Respecte les règles métier
+    
+  - getFlightsByAirport(airportCode, type, filters)
+    → Récupère les vols d'un aéroport
+    → Filtre par type (departure/arrival/both)
+    → Filtre par date, statut, etc.
+    
+  - updateFlightDetails(flightId, updates, userId)
+    → Met à jour les détails d'un vol
+    → Synchronise avec le vol lié
+    
+  - cancelFlight(flightId, reason, userId)
+    → Annule un vol
+    → Annule automatiquement le vol lié
+    
+  - deleteFlightPair(flightId, userId)
+    → Supprime le départ ET l'arrivée
+3.2 Règles Métier à Implémenter
+javascript// Règles de création
+- Vérifier que les aéroports existent
+- Vérifier que la compagnie existe
+- Vérifier que l'heure d'arrivée > heure de départ
+- Générer automatiquement le vol lié
+
+// Règles de mise à jour de statut
+- scheduled → on-time → boarding → departed → in-flight → landed
+- Permettre delayed à tout moment avant departed
+- Permettre cancelled à tout moment avant departed
+- Quand départ passe à "departed", arrivée passe à "in-flight"
+- Quand arrivée passe à "landed", départ reste "departed"
+
+// Règles de permissions
+- Admin ne peut créer que des DÉPARTS depuis son aéroport
+- Admin peut voir les ARRIVÉES vers son aéroport (lecture seule)
+- Admin peut confirmer l'atterrissage des arrivées
+- SuperAdmin peut tout faire
+3.3 Contrôleur Vols
+
+controllers/flightController.js :
+
+createFlight() : Créer un départ (appelle flightService)
+getAllFlights() : Liste tous les vols (avec filtres)
+getFlightById() : Détails d'un vol
+getFlightsByAirport() : Vols d'un aéroport spécifique
+getDeparturesForAirport() : Départs uniquement
+getArrivalsForAirport() : Arrivées uniquement
+updateFlightStatus() : Changer le statut
+updateFlightDetails() : Modifier les détails
+cancelFlight() : Annuler un vol
+deleteFlight() : Supprimer (paire complète)
+
+
+
+3.4 Routes Vols
+
+routes/flights.routes.js : Routes avec validations et permissions
+
+3.5 Middleware de Validation
+
+middleware/validate.middleware.js :
+
+Valider les données de vol
+Valider les codes IATA
+Valider les dates/heures
+
+
+
+✅ Frontend
+3.6 Page Création de Vol (Admin)
+
+pages/Admin/CreateFlight.jsx
+components/flights/FlightForm.jsx : Formulaire complexe
+
+Sélection compagnie
+Sélection aéroport destination
+Sélection dates/heures
+Informations avion
+Remarques
+
+
+
+3.7 Gestion des Vols (Admin)
+
+pages/Admin/Departures.jsx : Liste des départs
+pages/Admin/Arrivals.jsx : Liste des arrivées
+components/flights/FlightTable.jsx : Tableau des vols
+components/flights/FlightRow.jsx : Ligne de vol
+components/flights/FlightStatusBadge.jsx : Badge de statut coloré
+components/flights/FlightDetailsModal.jsx : Modal détails
+components/flights/UpdateStatusModal.jsx : Modal changement statut
+
+3.8 Gestion des Vols (SuperAdmin)
+
+pages/SuperAdmin/AllFlights.jsx : Vue globale tous vols
+Filtres avancés (aéroport, date, statut, compagnie)
+
+3.9 Services Frontend
+
+services/flightService.js :
+
+javascript  - createFlight(flightData)
+  - getFlights(filters)
+  - getFlightById(id)
+  - updateFlightStatus(id, status)
+  - updateFlight(id, updates)
+  - cancelFlight(id, reason)
+  - deleteFlight(id)
+📦 Livrables Phase 3
+
+✅ Création de vol avec arrivée automatique
+✅ Mise à jour de statut synchronisée
+✅ Annulation de vol (paire complète)
+✅ Interface de gestion des vols fonctionnelle
+✅ Permissions respectées (admin vs superadmin)
+
+🧪 Tests Phase 3
+
+Créer un vol TNR → TMM et vérifier que l'arrivée est créée
+Changer le statut d'un départ et vérifier la synchro
+Tester les permissions (admin ne peut pas modifier vol d'un autre aéroport)
+Annuler un vol et vérifier que les deux sont annulés
+
+
+🔴 PHASE 4 : TEMPS RÉEL AVEC SOCKET.IO (3-4 jours)
+Objectif : Synchronisation en temps réel entre tous les clients
+✅ Backend
+4.1 Configuration Socket.io
+
+config/socket.js : Configuration du serveur Socket.io
+
+javascript  // Événements à gérer
+  - connection : Nouvelle connexion client
+  - disconnect : Déconnexion client
+  - join:airport : Client rejoint une room d'aéroport
+  - leave:airport : Client quitte une room
+4.2 Service de Notifications
+
+services/notificationService.js :
+
+javascript  // Fonctions d'émission
+  - notifyFlightCreated(flight)
+    → Émet 'flight:created' vers tous les clients concernés
+    
+  - notifyFlightUpdated(flight)
+    → Émet 'flight:updated'
+    
+  - notifyFlightStatusChanged(flight, oldStatus, newStatus)
+    → Émet 'flight:statusChanged'
+    
+  - notifyFlightCancelled(flight)
+    → Émet 'flight:cancelled'
+    
+  - notifyFlightDeleted(flightId)
+    → Émet 'flight:deleted'
+4.3 Intégration dans les Contrôleurs
+
+Modifier flightController.js pour émettre des événements Socket.io après chaque action
+
+4.4 Rooms Socket.io
+javascript// Organiser les clients par aéroport
+- Room "TNR" : Tous les clients intéressés par TNR
+- Room "TMM" : Tous les clients intéressés par TMM
+- Room "global" : SuperAdmin, écrans publics généraux
+✅ Frontend
+4.5 Configuration Socket.io Client
+
+services/socket.js : Connexion au serveur Socket.io
+context/SocketContext.jsx : Context pour Socket.io
+
+4.6 Hook Personnalisé
+
+hooks/useSocket.js :
+
+javascript  // Hook pour écouter les événements
+  const useSocket = (airportCode) => {
+    // S'abonner aux événements de l'aéroport
+    // Mettre à jour l'état local automatiquement
+  }
+4.7 Intégration dans les Composants
+
+Mettre à jour FlightTable.jsx pour recevoir les updates en temps réel
+Mettre à jour les dashboards pour afficher les changements instantanément
+
+📦 Livrables Phase 4
+
+✅ Serveur Socket.io configuré
+✅ Événements émis côté backend
+✅ Client Socket.io configuré
+✅ Mises à jour en temps réel fonctionnelles
+✅ Rooms par aéroport
+
+🧪 Tests Phase 4
+
+Ouvrir 2 navigateurs (admin TNR + admin TMM)
+Créer un vol TNR → TMM depuis le premier navigateur
+Vérifier que le second navigateur voit l'arrivée automatiquement
+Changer un statut et vérifier la synchro instantanée
+
+
+📺 PHASE 5 : ÉCRANS PUBLICS D'AFFICHAGE (4-5 jours)
+Objectif : Créer les écrans de hall d'aéroport avec auto-refresh
+✅ Frontend
+5.1 Composants d'Écrans Publics
+
+pages/PublicDisplays/ArrivalBoard.jsx : Hall Arrivées
+
+Affiche UNIQUEMENT les arrivées de l'aéroport sélectionné
+Colonnes : Vol, Origine, Heure prévue, Heure estimée, Statut
+Tri par heure d'arrivée
+Auto-scroll si plus de 10 vols
+
+
+pages/PublicDisplays/DepartureBoard.jsx : Hall Départs
+
+Affiche UNIQUEMENT les départs de l'aéroport sélectionné
+Colonnes : Vol, Destination, Heure prévue, Heure estimée, Statut
+Tri par heure de départ
+
+
+pages/PublicDisplays/GeneralBoard.jsx : Hall Général
+
+Affiche arrivées ET départs de l'aéroport
+Deux sections distinctes
+Défilement alterné
+
+
+
+5.2 Composants Réutilisables
+
+components/displays/FlightBoardRow.jsx : Ligne d'affichage
+components/displays/StatusIndicator.jsx : Indicateur de statut visuel
+components/displays/Clock.jsx : Horloge en temps réel
+components/displays/BoardHeader.jsx : En-tête avec logo aéroport
+
+5.3 Styles d'Affichage Public
+css/* Caractéristiques importantes */
+- Police grande (min 24px)
+- Fond sombre (#1a1a1a)
+- Texte clair (#ffffff)
+- Couleurs de statut vives
+- Animations fluides (transition: all 0.3s)
+- Mode plein écran
+- Pas de scrollbar visible
+5.4 Auto-refresh et Temps Réel
+
+Connexion Socket.io pour updates instantanées
+Fallback avec polling toutes les 30 secondes
+Animation lors de l'ajout/retrait de vols
+Highlight temporaire des vols mis à jour
+
+5.5 Routes Publiques
+
+/display/:airportCode/arrivals : Écran arrivées
+/display/:airportCode/departures : Écran départs
+/display/:airportCode/general : Écran général
+Pas d'authentification requise
+URL à ouvrir sur les écrans physiques
+
+✅ Backend
+5.6 API Publique (sans auth)
+
+routes/public.routes.js :
+
+GET /public/flights/:airportCode/arrivals
+GET /public/flights/:airportCode/departures
+GET /public/flights/:airportCode/all
+
+
+
+📦 Livrables Phase 5
+
+✅ 3 écrans publics fonctionnels
+✅ Design adapté à l'affichage à distance
+✅ Auto-refresh en temps réel
+✅ Animations fluides
+✅ Mode plein écran
+
+🧪 Tests Phase 5
+
+Ouvrir l'écran d'arrivées sur un grand écran
+Créer un vol vers cet aéroport
+Vérifier que le vol apparaît automatiquement
+Changer le statut et vérifier l'animation
+Tester la lisibilité à 3-5 mètres de distance
+
+
+👥 PHASE 6 : GESTION DES UTILISATEURS (2-3 jours)
+Objectif : Permettre au SuperAdmin de gérer les admins régionaux
+✅ Backend
+6.1 Contrôleur Utilisateurs
+
+controllers/userController.js :
+
+getAllUsers() : Liste tous les admins
+getUserById() : Détails d'un admin
+createAdmin() : Créer un admin régional (superadmin only)
+updateUser() : Modifier un admin
+deleteUser() : Supprimer un admin
+toggleUserStatus() : Activer/désactiver un admin
+
+
+
+6.2 Routes Utilisateurs
+
+routes/users.routes.js
+
+✅ Frontend
+6.3 Gestion des Admins (SuperAdmin)
+
+pages/SuperAdmin/Users.jsx
+components/users/UserList.jsx
+components/users/UserCard.jsx
+components/users/UserForm.jsx : Formulaire création/édition admin
+
+Champs : Email, Nom, Prénom, Aéroport assigné
+Génération de mot de passe temporaire
+
+
+
+📦 Livrables Phase 6
+
+✅ CRUD utilisateurs complet
+✅ Interface de gestion des admins
+✅ Assignment d'aéroport aux admins
+
+
+📊 PHASE 7 : DASHBOARDS & STATISTIQUES (3-4 jours)
+Objectif : Créer des tableaux de bord informatifs
+✅ Backend
+7.1 Contrôleur Statistiques
+
+controllers/statsController.js :
+
+getGlobalStats() : Stats globales (superadmin)
+
+Nombre total de vols aujourd'hui
+Vols actifs, retardés, annulés
+Nombre d'aéroports actifs
+Vols par compagnie
+
+
+getAirportStats(airportCode) : Stats d'un aéroport
+
+Départs/Arrivées aujourd'hui
+Vols en retard
+Statut des vols
+Historique 7 derniers jours
+
+
+
+
+
+7.2 Routes Statistiques
+
+routes/stats.routes.js
+
+✅ Frontend
+7.3 Dashboard SuperAdmin
+
+pages/SuperAdmin/Dashboard.jsx :
+
+Vue d'ensemble :
+
+Cartes de statistiques (total vols, retards, annulations)
+Graphique vols par jour (7 derniers jours)
+Liste des aéroports avec nombre de vols actifs
+
+
+Carte interactive des aéroports :
+
+Cliquer sur un aéroport pour voir ses détails
+Indicateur visuel (vert/orange/rouge) selon les retards
+Accès rapide au dashboard de l'aéroport
+Accès rapide aux écrans publics
+
+
+
+
+
+7.4 Dashboard Admin Régional
+
+pages/Admin/Dashboard.jsx :
+
+Statistiques de l'aéroport du jour
+Prochains départs (3-5 prochains)
+Prochaines arrivées (3-5 prochaines)
+Alertes retards
+Accès rapide création de vol
+Liens vers écrans publics
+
+
+
+7.5 Composants de Statistiques
+
+components/stats/StatCard.jsx : Carte de statistique
+components/stats/FlightChart.jsx : Graphique (recharts ou chart.js)
+components/stats/AirportMap.jsx : Carte des aéroports
+components/stats/RecentFlights.jsx : Vols récents
+
+📦 Livrables Phase 7
+
+✅ Dashboard SuperAdmin complet et informatif
+✅ Dashboard Admin avec statistiques locales
+✅ Graphiques et visualisations
+✅ Carte interactive des aéroports
+
+
+🎨 PHASE 8 : UI/UX & RESPONSIVE (3-4 jours)
+Objectif : Améliorer l'expérience utilisateur
+✅ Frontend
+8.1 Design System
+
+Créer un système de couleurs cohérent
+Définir les composants UI de base :
+
+Boutons (primary, secondary, danger)
+Inputs et formulaires
+Cards
+Modals
+Toasts/Notifications
+Loading spinners
+
+
+
+8.2 Composants Common
+
+components/common/Button.jsx
+components/common/Input.jsx
+components/common/Modal.jsx
+components/common/Toast.jsx
+components/common/Card.jsx
+components/common/LoadingSpinner.jsx
+components/common/EmptyState.jsx
+
+8.3 Navigation
+
+components/layout/Navbar.jsx : Barre de navigation
+components/layout/Sidebar.jsx : Menu latéral
+components/layout/Footer.jsx
+Navigation responsive (hamburger menu sur mobile)
+
+8.4 Responsive Design
+
+Adapter tous les composants pour mobile/tablette
+Tester sur différentes résolutions
+Optimiser les tableaux pour mobile (cartes au lieu de tableaux)
+
+8.5 Notifications Toast
+
+Installer react-toastify ou sonner
+Afficher des notifications pour :
+
+Succès (création, modification)
+Erreurs (validation, serveur)
+Informations (vol créé, statut changé)
+
+
+
+8.6 Loading States
+
+Skeletons pendant le chargement
+Spinners pour les actions
+États vides (pas de vols, pas de données)
+
+📦 Livrables Phase 8
+
+✅ Interface moderne et cohérente
+✅ Expérience utilisateur fluide
+✅ Responsive sur tous les appareils
+✅ Notifications et feedbacks visuels
+
+
+🔒 PHASE 9 : SÉCURITÉ & OPTIMISATIONS (3-4 jours)
+Objectif : Sécuriser et optimiser l'application
+✅ Backend
+9.1 Sécurité
+
+Helmet.js : Sécuriser les headers HTTP
+Rate Limiting : Limiter les requêtes (express-rate-limit)
+
+100 requêtes/15min pour les routes publiques
+200 requêtes/15min pour les routes authentifiées
+
+
+Input Sanitization : Nettoyer les entrées (express-mongo-sanitize)
+CORS : Configurer correctement les origines autorisées
+Validation stricte : Express-validator sur toutes les routes
+
+9.2 Optimisations Base de Données
+javascript// Index à créer
+Flight:
+  - { flightNumber: 1, scheduledDeparture: -1 }
+  - { originAirportCode: 1, scheduledDeparture: -1 }
+  - { destinationAirportCode: 1, scheduledArrival: -1 }
+  - { status: 1 }
+  - { linkedFlightId: 1 }
+  
+Airport:
+  - { code: 1 } (unique)
+  
+Airline:
+  - { code: 1 } (unique)
+  
+User:
+  - { email: 1 } (unique)
+  - { airportCode: 1 }
+9.3 Pagination
+
+Implémenter la pagination sur toutes les listes
+Paramètres : ?page=1&limit=20
+
+9.4 Caching
+
+Mettre en cache les données statiques (aéroports, compagnies)
+Utiliser Redis si possible (optionnel)
+
+9.5 Logging
+
+Installer Winston pour les logs
+Logger les actions importantes :
+
+Créations de vols
+Changements de statut
+Erreurs serveur
+Tentatives d'accès non autorisées
+
+
+
+9.6 Nettoyage Automatique
+
+Script CRON pour nettoyer les vols anciens (>7 jours)
+Archivage des vols complétés
+
+✅ Frontend
+9.7 Optimisations
+
+Code Splitting : Lazy loading des routes
+Memoization : React.memo sur les composants lourds
+Debouncing : Sur les recherches et filtres
+Optimistic Updates : Mettre à jour l'UI avant la réponse serveur
+
+9.8 Gestion d'Erreurs
+
+Boundary d'erreur React
+Gestion des erreurs réseau
+Messages d'erreur clairs
+
+📦 Livrables Phase 9
+
+✅ Application sécurisée
+✅ Performances optimisées
+✅ Logs et monitoring
+✅ Gestion d'erreurs robuste
+
+
+🧪 PHASE 10 : TESTS & DEBUGGING (4-5 jours)
+Objectif : Tester exhaustivement l'application
+✅ Tests Fonctionnels
+10.1 Tests Authentification
+
+✅ Login avec credentials valides
+✅ Login avec credentials invalides
+✅ Logout
+✅ Accès aux routes protégées sans token
+✅ Accès aux routes selon le rôle
+
+10.2 Tests Gestion des Vols
+
+✅ Créer un vol départ → Vérifier arrivée auto-créée
+✅ Mettre à jour statut → Vérifier synchronisation
+✅ Annuler un vol → Vérifier que les deux sont annulés
+✅ Modifier les détails d'un vol
+✅ Supprimer un vol
+✅ Tester les permissions (admin ne peut pas modifier vol d'un autre aéroport)
+
+10.3 Tests Temps Réel
+
+✅ Ouvrir 2 navigateurs
+✅ Créer un vol dans le premier
+✅ Vérifier qu'il apparaît dans le second
+✅ Changer le statut et vérifier la synchro
+
+10.4 Tests Écrans Publics
+
+✅ Affichage correct des vols
+✅ Auto-refresh fonctionnel
+✅ Filtrage correct (arrivées/départs/général)
+✅ Animations fluides
+
+10.5 Tests Responsive
+
+✅ Tester sur mobile (375
+RéessayerHContinuerpx, 768px)
+
+✅ Tester sur tablette (1024px)
+✅ Tester sur desktop (1920px)
+✅ Tester sur écran public (grand format)
+
+10.6 Tests de Performance
+
+✅ Temps de chargement initial < 3s
+✅ Temps de réponse API < 500ms
+✅ Affichage de 100+ vols sans lag
+✅ Consommation mémoire raisonnable
+
+10.7 Tests de Sécurité
+
+✅ Tentative d'accès non autorisé
+✅ Injection SQL/NoSQL (vérifier sanitization)
+✅ XSS (Cross-Site Scripting)
+✅ CSRF (Cross-Site Request Forgery)
+✅ Rate limiting fonctionnel
+
+10.8 Tests Edge Cases
+
+✅ Vol avec heure d'arrivée avant départ (doit être rejeté)
+✅ Vol vers aéroport inexistant (doit être rejeté)
+✅ Compagnie inexistante (doit être rejeté)
+✅ Changement de statut invalide (ex: de "landed" à "boarding")
+✅ Création de vol par admin d'un autre aéroport (doit être rejeté)
+✅ Connexion internet coupée (reconnexion Socket.io)
+✅ Serveur down (gestion d'erreur gracieuse)
+
+✅ Debugging
+10.9 Outils de Debugging
+
+Backend :
+
+Console logs stratégiques
+Winston logs
+Postman/Thunder Client pour tester les APIs
+MongoDB Compass pour vérifier la DB
+
+
+Frontend :
+
+React Developer Tools
+Redux DevTools (si utilisé)
+Network tab (Chrome DevTools)
+Console errors
+
+
+
+10.10 Bugs Communs à Vérifier
+
+✅ Fuites mémoire (listeners Socket.io non nettoyés)
+✅ Re-renders excessifs (React DevTools Profiler)
+✅ Requêtes API en double
+✅ Token JWT expiré (gestion du refresh)
+✅ CORS errors
+✅ Timezone issues (utiliser UTC)
+✅ Dates mal formatées
+
+📦 Livrables Phase 10
+
+✅ Tous les tests fonctionnels passent
+✅ Bugs critiques corrigés
+✅ Documentation des bugs connus (non-bloquants)
+✅ Liste de vérification (checklist) complétée
+
+
+📝 PHASE 11 : DOCUMENTATION (2-3 jours)
+Objectif : Documenter le projet pour maintenance future
+✅ Documentation Technique
+11.1 README.md Principal
+markdown# Système de Gestion de Vols - Madagascar
+
+## Description
+Application web de gestion des vols pour les aéroports nationaux de Madagascar.
+
+## Technologies
+- Frontend: React + Vite + Tailwind CSS
+- Backend: Node.js + Express + MongoDB
+- Temps Réel: Socket.io
+
+## Installation
+[Instructions détaillées]
+
+## Configuration
+[Variables d'environnement]
+
+## Démarrage
+[Commandes npm]
+
+## Architecture
+[Diagrammes et explications]
+11.2 Documentation Backend
+
+backend/README.md :
+
+Structure du projet
+Routes API disponibles
+Modèles de données
+Variables d'environnement
+Scripts disponibles
+
+
+
+11.3 Documentation API
+
+Option 1 : Swagger/OpenAPI
+
+Installer swagger-ui-express
+Documenter toutes les routes
+Générer interface interactive
+
+
+Option 2 : Postman Collection
+
+Exporter collection Postman
+Inclure exemples de requêtes
+Documenter les réponses
+
+
+
+11.4 Documentation Frontend
+
+frontend/README.md :
+
+Structure du projet
+Composants principaux
+Services et hooks
+Configuration
+Build et déploiement
+
+
+
+11.5 Guide Utilisateur
+
+docs/USER_GUIDE.md :
+
+Pour SuperAdmin :
+
+Comment créer des aéroports
+Comment créer des admins
+Comment gérer les compagnies
+Comment accéder aux écrans publics
+
+
+Pour Admin Régional :
+
+Comment créer un vol
+Comment mettre à jour un statut
+Comment gérer les retards
+Comment accéder aux écrans publics
+
+
+
+
+
+11.6 Guide de Déploiement
+
+docs/DEPLOYMENT.md :
+
+Prérequis serveur
+Configuration MongoDB Atlas
+Déploiement backend
+Déploiement frontend
+Configuration DNS
+SSL/HTTPS
+
+
+
+11.7 Diagrammes
+
+Diagramme d'architecture
+Diagramme de base de données (ERD)
+Flux de données (création de vol)
+Diagramme de séquence (mise à jour statut)
+
+📦 Livrables Phase 11
+
+✅ README complets
+✅ Documentation API
+✅ Guide utilisateur
+✅ Guide de déploiement
+✅ Diagrammes clairs
+
+
+🚀 PHASE 12 : DÉPLOIEMENT EN PRODUCTION (3-4 jours)
+Objectif : Déployer l'application sur des serveurs de production
+✅ Préparation
+12.1 Vérifications Pré-Déploiement
+
+✅ Tous les tests passent
+✅ Pas de console.log inutiles
+✅ Variables d'environnement configurées
+✅ Build de production fonctionne localement
+✅ Base de données de production prête
+
+12.2 Configuration Production
+Backend (.env.production)
+envNODE_ENV=production
+PORT=5000
+MONGO_URI=mongodb+srv://...
+JWT_SECRET=super_secret_key_production_256_chars
+JWT_EXPIRE=24h
+CLIENT_URL=https://your-domain.com
+CORS_ORIGIN=https://your-domain.com
+Frontend (.env.production)
+envVITE_API_URL=https://api.your-domain.com
+VITE_SOCKET_URL=https://api.your-domain.com
+✅ Déploiement Backend
+12.3 Options d'Hébergement Backend
+Option A : Railway (Recommandé - Simple et gratuit pour commencer)
+bash# 1. Créer un compte Railway
+# 2. Installer Railway CLI
+npm i -g @railway/cli
+
+# 3. Login
+railway login
+
+# 4. Initialiser projet
+railway init
+
+# 5. Ajouter MongoDB (Railway fournit)
+railway add
+
+# 6. Déployer
+railway up
+Option B : Render (Gratuit avec limitations)
+bash# 1. Créer compte Render.com
+# 2. Connecter repo GitHub
+# 3. Créer "Web Service"
+# 4. Build Command: npm install
+# 5. Start Command: npm start
+# 6. Ajouter variables d'environnement
+Option C : DigitalOcean/AWS/Heroku (Payant mais flexible)
+
+Configuration serveur Linux
+Installation Node.js
+Configuration PM2 pour process management
+Configuration Nginx comme reverse proxy
+
+12.4 Configuration PM2 (si serveur VPS)
+javascript// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'flight-management-api',
+    script: './src/server.js',
+    instances: 2,
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 5000
+    }
+  }]
+}
+✅ Déploiement Frontend
+12.5 Build de Production
+bashcd frontend
+npm run build
+# Génère le dossier dist/
+12.6 Options d'Hébergement Frontend
+Option A : Vercel (Recommandé - Gratuit et simple)
+bash# 1. Installer Vercel CLI
+npm i -g vercel
+
+# 2. Login
+vercel login
+
+# 3. Déployer
+cd frontend
+vercel --prod
+Option B : Netlify (Gratuit et simple)
+bash# 1. Installer Netlify CLI
+npm i -g netlify-cli
+
+# 2. Login
+netlify login
+
+# 3. Déployer
+cd frontend
+netlify deploy --prod --dir=dist
+Option C : Cloudflare Pages (Gratuit et rapide)
+
+Connecter repo GitHub
+Configuration automatique
+Build command: npm run build
+Publish directory: dist
+
+✅ Base de Données
+12.7 MongoDB Atlas (Production)
+bash# 1. Créer cluster production (M10+ recommandé)
+# 2. Configurer IP Whitelist (0.0.0.0/0 ou IP spécifiques)
+# 3. Créer utilisateur avec droits appropriés
+# 4. Activer backup automatique
+# 5. Configurer alertes (CPU, mémoire, storage)
+12.8 Données Initiales Production
+bash# Script de seed pour production
+node scripts/seedProduction.js
+
+# Créer :
+- SuperAdmin principal
+- Tous les aéroports de Madagascar
+- Compagnies aériennes actives
+- Quelques vols de test
+```
+
+### ✅ Configuration DNS
+
+#### 12.9 Noms de Domaine
+```
+Frontend: https://flights.aviation.mg
+Backend: https://api.flights.aviation.mg
+```
+
+#### 12.10 Configuration DNS
+```
+Type    Name                Value
+A       flights             [IP Vercel/Netlify]
+CNAME   api.flights         [URL Railway/Render]
+```
+
+### ✅ SSL/HTTPS
+
+#### 12.11 Certificats SSL
+- **Vercel/Netlify** : SSL automatique
+- **Railway/Render** : SSL automatique
+- **VPS** : Let's Encrypt avec Certbot
+
+### ✅ Monitoring
+
+#### 12.12 Outils de Monitoring
+- **Uptime** : UptimeRobot (gratuit)
+  - Ping toutes les 5 minutes
+  - Alertes email si down
+  
+- **Logs** : Logtail/Papertrail
+  - Centraliser les logs backend
+  - Recherche et filtres
+  
+- **Performance** : Google Analytics ou Plausible
+  - Suivre l'utilisation
+  - Temps de chargement
+  
+- **Erreurs** : Sentry
+  - Capturer les erreurs frontend/backend
+  - Alertes en temps réel
+
+### ✅ Sauvegardes
+
+#### 12.13 Stratégie de Backup
+- **MongoDB Atlas** : Backup automatique quotidien
+- **Code** : Git (GitHub/GitLab)
+- **Variables d'environnement** : Stocker dans un gestionnaire de secrets (1Password, Vault)
+
+### 📦 Livrables Phase 12
+- ✅ Backend déployé et accessible
+- ✅ Frontend déployé et accessible
+- ✅ Base de données production configurée
+- ✅ DNS configuré
+- ✅ SSL activé
+- ✅ Monitoring en place
+- ✅ Backups configurés
+
+### 🧪 Tests Post-Déploiement
+- ✅ Tester login
+- ✅ Créer un vol
+- ✅ Vérifier temps réel
+- ✅ Tester écrans publics
+- ✅ Vérifier responsive
+- ✅ Tester depuis différents appareils
+- ✅ Vérifier SSL (cadenas vert)
+
+---
+
+## 🎓 PHASE 13 : FORMATION & LIVRAISON (2-3 jours)
+
+### Objectif : Former les utilisateurs et livrer le projet
+
+### ✅ Formation
+
+#### 13.1 Formation SuperAdmin
+**Durée : 2-3 heures**
+
+**Contenu** :
+1. Vue d'ensemble du système
+2. Gestion des aéroports
+   - Créer un aéroport
+   - Modifier les informations
+   - Désactiver un aéroport
+   
+3. Gestion des compagnies
+   - Ajouter une compagnie
+   - Uploader un logo
+   - Modifier/supprimer
+   
+4. Gestion des admins
+   - Créer un admin régional
+   - Assigner un aéroport
+   - Réinitialiser mot de passe
+   - Désactiver un compte
+   
+5. Supervision des vols
+   - Vue globale
+   - Filtres avancés
+   - Export de données
+   
+6. Accès aux écrans publics
+   - Comment ouvrir les écrans
+   - Configuration plein écran
+   
+7. Résolution de problèmes courants
+
+#### 13.2 Formation Admin Régional
+**Durée : 1-2 heures**
+
+**Contenu** :
+1. Connexion et navigation
+2. Dashboard local
+   - Comprendre les statistiques
+   - Alertes et notifications
+   
+3. Créer un vol de départ
+   - Remplir le formulaire
+   - Vérifier la création automatique de l'arrivée
+   - Bonnes pratiques
+   
+4. Gérer les vols
+   - Voir les départs
+   - Voir les arrivées attendues
+   - Filtrer par date/statut
+   
+5. Mettre à jour un statut
+   - Quand changer le statut
+   - Statuts disponibles
+   - Synchronisation automatique
+   
+6. Gérer les retards
+   - Signaler un retard
+   - Modifier l'heure estimée
+   - Communication
+   
+7. Accès aux écrans publics de l'aéroport
+   - Hall arrivées
+   - Hall départs
+   - Hall général
+
+#### 13.3 Matériel de Formation
+- **Vidéos tutoriels** :
+  - Screencast de chaque fonctionnalité
+  - Vidéos courtes (2-5 min chacune)
+  
+- **Documentation PDF** :
+  - Guide SuperAdmin (15-20 pages)
+  - Guide Admin Régional (10-15 pages)
+  - FAQ (5-10 pages)
+  
+- **Cheat Sheets** :
+  - Raccourcis clavier
+  - Actions rapides
+  - Codes de statut
+  - Codes d'aéroport Madagascar
+
+### ✅ Support
+
+#### 13.4 Plan de Support
+**Première semaine** : Support intensif
+- Disponibilité 8h-18h
+- Réponse dans l'heure
+- Session Q&A quotidienne
+
+**Premier mois** : Support régulier
+- Disponibilité 9h-17h
+- Réponse sous 4h
+- Session Q&A hebdomadaire
+
+**Après un mois** : Support standard
+- Support par email
+- Réponse sous 24h
+- Documentation en ligne
+
+#### 13.5 Canaux de Support
+- **Email** : support@flights.aviation.mg
+- **WhatsApp** : Groupe dédié pour questions urgentes
+- **Base de connaissances** : Documentation en ligne
+- **Tickets** : Système de ticketing si nécessaire
+
+### ✅ Livraison
+
+#### 13.6 Checklist de Livraison
+- ✅ Application déployée et fonctionnelle
+- ✅ Accès fournis (URLs, credentials SuperAdmin)
+- ✅ Documentation complète livrée
+- ✅ Vidéos de formation disponibles
+- ✅ Données initiales créées (aéroports, compagnies)
+- ✅ Formations effectuées
+- ✅ Plan de support communiqué
+- ✅ Code source livré (GitHub private repo)
+- ✅ Variables d'environnement documentées
+- ✅ Procédures de backup expliquées
+
+#### 13.7 Documents de Livraison
+1. **Rapport de livraison**
+   - Récapitulatif du projet
+   - Fonctionnalités implémentées
+   - Technologies utilisées
+   - URLs de production
+   
+2. **Guide de maintenance**
+   - Comment mettre à jour l'application
+   - Gestion des backups
+   - Monitoring et alertes
+   - Résolution de problèmes
+   
+3. **Contrat de maintenance** (optionnel)
+   - Maintenance corrective
+   - Maintenance évolutive
+   - SLA (Service Level Agreement)
+
+### 📦 Livrables Phase 13
+- ✅ Utilisateurs formés
+- ✅ Documentation livrée
+- ✅ Support en place
+- ✅ Application en production
+- ✅ Feedback initial collecté
+
+---
+
+## 🔄 PHASE 14 : MAINTENANCE & ÉVOLUTIONS (Continu)
+
+### Objectif : Assurer la maintenance et faire évoluer le système
+
+### ✅ Maintenance Corrective
+
+#### 14.1 Corrections de Bugs
+- Suivre les bugs reportés
+- Prioriser selon la gravité
+- Corriger et déployer rapidement
+- Communiquer les corrections
+
+#### 14.2 Monitoring Continu
+- Vérifier les logs quotidiennement
+- Surveiller les performances
+- Analyser les erreurs
+- Vérifier l'espace disque DB
+
+### ✅ Maintenance Évolutive
+
+#### 14.3 Améliorations Possibles (Backlog)
+
+**Court terme (1-3 mois)** :
+1. **Notifications par email**
+   - Alertes de retard automatiques
+   - Résumé quotidien pour admins
+   
+2. **Export de données**
+   - Export Excel des vols
+   - Rapports PDF
+   - Statistiques mensuelles
+   
+3. **Historique des vols**
+   - Archivage automatique
+   - Recherche dans l'historique
+   - Statistiques historiques
+   
+4. **Météo intégrée**
+   - Afficher la météo par aéroport
+   - Alertes météo
+
+**Moyen terme (3-6 mois)** :
+1. **Application mobile**
+   - React Native ou Flutter
+   - Pour les admins
+   - Notifications push
+   
+2. **Intégration SMS**
+   - Notifications SMS pour passagers
+   - Alertes retards
+   
+3. **Système de notifications avancé**
+   - Notifications dans l'app
+   - Centre de notifications
+   - Préférences utilisateur
+   
+4. **Multi-langue**
+   - Français
+   - Malgache
+   - Anglais
+
+**Long terme (6-12 mois)** :
+1. **Gestion des passagers**
+   - Liste des passagers par vol
+   - Check-in en ligne
+   - Boarding pass
+   
+2. **Gestion du fret**
+   - Suivi des marchandises
+   - Poids et volumes
+   
+3. **Intégration systèmes externes**
+   - Systèmes de réservation
+   - Systèmes comptables
+   - API publique pour partenaires
+   
+4. **Intelligence artificielle**
+   - Prédiction des retards
+   - Optimisation des horaires
+   - Recommandations automatiques
+
+### ✅ Mises à Jour
+
+#### 14.4 Cycle de Mises à Jour
+**Mises à jour mineures** : Toutes les 2 semaines
+- Corrections de bugs
+- Petites améliorations
+- Mise à jour dépendances
+
+**Mises à jour majeures** : Tous les 3 mois
+- Nouvelles fonctionnalités
+- Refactoring important
+- Migrations DB si nécessaire
+
+### 📦 Livrables Phase 14
+- ✅ Bugs corrigés régulièrement
+- ✅ Fonctionnalités évolutives
+- ✅ Application à jour
+- ✅ Utilisateurs satisfaits
+
+---
+
+## 📊 RÉCAPITULATIF DU PLANNING GLOBAL
+
+### Timeline Estimée : **10-12 semaines** (2,5 - 3 mois)
+```
+┌──────────────────────────────────────────────────────────┐
+│ SEMAINE 1-2 : FONDATIONS                                 │
+├──────────────────────────────────────────────────────────┤
+│ Phase 0 : Setup (2-3j)                                   │
+│ Phase 1 : Auth & Modèles (3-4j)                          │
+│ Phase 2 : Aéroports & Compagnies (3-4j)                  │
+└──────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────┐
+│ SEMAINE 3-4 : CŒUR DU SYSTÈME                            │
+├──────────────────────────────────────────────────────────┤
+│ Phase 3 : Gestion des Vols (5-6j)                        │
+│ Phase 4 : Temps Réel Socket.io (3-4j)                    │
+└──────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────┐
+│ SEMAINE 5-6 : INTERFACES                                 │
+├──────────────────────────────────────────────────────────┤
+│ Phase 5 : Écrans Publics (4-5j)                          │
+│ Phase 6 : Gestion Utilisateurs (2-3j)                    │
+│ Phase 7 : Dashboards (3-4j)                              │
+└──────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────┐
+│ SEMAINE 7-8 : QUALITÉ                                    │
+├──────────────────────────────────────────────────────────┤
+│ Phase 8 : UI/UX & Responsive (3-4j)                      │
+│ Phase 9 : Sécurité & Optimisations (3-4j)                │
+│ Phase 10 : Tests & Debugging (4-5j)                      │
+└──────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────┐
+│ SEMAINE 9-10 : LIVRAISON                                 │
+├──────────────────────────────────────────────────────────┤
+│ Phase 11 : Documentation (2-3j)                          │
+│ Phase 12 : Déploiement (3-4j)                            │
+│ Phase 13 : Formation & Livraison (2-3j)                  │
+└──────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────┐
+│ APRÈS LIVRAISON : CONTINU                                │
+├──────────────────────────────────────────────────────────┤
+│ Phase 14 : Maintenance & Évolutions                      │
+└──────────────────────────────────────────────────────────┘
+
+🎯 ORDRE DE PRIORITÉ DES PHASES
+Phases CRITIQUES (Ne pas skipper) :
+
+Phase 0 : Setup
+Phase 1 : Auth & Modèles
+Phase 3 : Gestion des Vols (CŒUR DU SYSTÈME)
+Phase 4 : Temps Réel
+Phase 12 : Déploiement
+
+Phases IMPORTANTES :
+
+Phase 2 : Aéroports & Compagnies
+Phase 5 : Écrans Publics
+Phase 7 : Dashboards
+Phase 10 : Tests
+
+Phases RECOMMANDÉES :
+
+Phase 6 : Gestion Utilisateurs
+Phase 8 : UI/UX
+Phase 9 : Sécurité
+Phase 11 : Documentation
+
+Phases OPTIONNELLES (peuvent être faites après) :
+
+Phase 13 : Formation (selon contexte)
+Phase 14 : Évolutions futures
+
+
+💡 CONSEILS POUR SUIVRE LES PHASES
+1. Approche Agile
+
+Travailler par sprints de 1-2 semaines
+Livrer des fonctionnalités complètes à chaque sprint
+Tester régulièrement
+Ajuster le planning selon les difficultés
+
+2. Prioriser le MVP (Minimum Viable Product)
+MVP = Phases 0, 1, 3, 4, 5, 12
+
+Permet d'avoir un système fonctionnel rapidement
+Ajouter les autres fonctionnalités progressivement
+
+3. Ne pas négliger les tests
+
+Tester à chaque phase
+Ne pas accumuler la dette technique
+Un bug détecté tôt est 10x plus facile à corriger
+
+4. Documenter au fur et à mesure
+
+Ne pas attendre la fin
+Documenter pendant le développement
+Gain de temps énorme
+
+5. Demander du feedback régulièrement
+
+Montrer les avancées chaque semaine
+Ajuster selon les retours
+Éviter les mauvaises surprises à la fin

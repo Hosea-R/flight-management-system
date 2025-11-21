@@ -60,7 +60,9 @@ app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/airports', require('./routes/airports.routes'));
 app.use('/api/airlines', require('./routes/airlines.routes'));
 app.use('/api/flights', require('./routes/flights.routes'));
-// app.use('/api/users', require('./routes/users.routes'));
+app.use('/api/public', require('./routes/public.routes')); // Routes publiques (FIDS)
+app.use('/api/users', require('./routes/users.routes')); // Gestion des utilisateurs (SuperAdmin)
+app.use('/api/stats', require('./routes/stats.routes')); // Statistiques
 
 // Gestion des erreurs 404
 app.use((req, res) => {
