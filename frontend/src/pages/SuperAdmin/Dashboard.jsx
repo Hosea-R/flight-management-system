@@ -41,7 +41,7 @@ const SuperAdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 page-transition">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

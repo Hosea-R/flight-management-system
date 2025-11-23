@@ -13,11 +13,16 @@ import {
   Filter,
   Search,
   Calendar,
-  MapPin
+  MapPin,
+  Edit,
+  Trash2,
+  ChevronDown,
+  X
 } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 import Loading from '../../components/common/Loading';
+import Modal from '../../components/common/Modal';
 
 const Flights = () => {
   const { user } = useAuth();
@@ -25,6 +30,13 @@ const Flights = () => {
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, departure, arrival
+  
+  // States pour les actions CRUD
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [flightToDelete, setFlightToDelete] = useState(null);
+  const [showStatusMenu, setShowStatusMenu] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
 
   useEffect(() => {
     fetchFlights();
@@ -110,8 +122,87 @@ const Flights = () => {
     return labels[status] || status;
   };
 
+  // Gérer la suppression
+  const handleDeleteClick = (flight) => {
+    setFlightToDelete(flight);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!flightToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      await flightService.deleteFlight(flightToDelete._id);
+      setShowDeleteModal(false);
+      setFlightToDelete(null);
+      // Socket.io mettra à jour la liste automatiquement
+    } catch (error) {
+      console.error('Erreur suppression vol:', error);
+      alert('Erreur lors de la suppression du vol');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Gérer le changement de statut
+  const handleStatusChange = async (flightId, newStatus, currentStatus) => {
+    // Ne rien faire si le statut est identique
+    if (newStatus === currentStatus) {
+      alert('Le vol possède déjà ce statut.');
+      return;
+    }
+    // Vérifier que la transition est autorisée côté client
+    const allowed = validTransitions[currentStatus] || [];
+    if (!allowed.includes(newStatus)) {
+      alert(`Transition de statut invalide: ${currentStatus} → ${newStatus}`);
+      return;
+    }
+    try {
+      setIsChangingStatus(true);
+      await flightService.updateFlightStatus(flightId, newStatus);
+      setShowStatusMenu(null);
+    } catch (error) {
+      console.error('Erreur changement statut:', error);
+      const errorMsg = error.response?.data?.message || 'Erreur lors du changement de statut';
+      alert(errorMsg);
+    } finally {
+      setIsChangingStatus(false);
+    }
+  };
+
+  // Transitions valides (identiques à celles du backend)
+  const validTransitions = {
+    'scheduled': ['on-time', 'delayed', 'cancelled'],
+    'on-time': ['delayed', 'boarding', 'cancelled'],
+    'delayed': ['on-time', 'boarding', 'cancelled'],
+    'boarding': ['departed', 'delayed', 'cancelled'],
+    'departed': ['in-flight'],
+    'in-flight': ['landed'],
+    'landed': [],
+    'cancelled': []
+  };
+
+  // Options de statut filtrées selon le statut actuel du vol
+  const getAllowedStatusOptions = (currentStatus) => {
+    const allowed = validTransitions[currentStatus] || [];
+    // Toujours inclure l'option actuelle pour affichage, même si aucune transition
+    const allOptions = [
+      { value: 'scheduled', label: 'Prévu' },
+      { value: 'on-time', label: 'À l\'heure' },
+      { value: 'boarding', label: 'Embarquement' },
+      { value: 'departed', label: 'Décollé' },
+      { value: 'in-flight', label: 'En vol' },
+      { value: 'landed', label: 'Atterri' },
+      { value: 'arrived', label: 'Arrivé' },
+      { value: 'delayed', label: 'Retardé' },
+      { value: 'cancelled', label: 'Annulé' }
+    ];
+    return allOptions.filter(opt => opt.value === currentStatus || allowed.includes(opt.value));
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 page-transition">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -133,37 +224,39 @@ const Flights = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 backdrop-blur-xl p-2 rounded-2xl shadow-sm border border-slate-100 inline-flex">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
-            filter === 'all' 
-              ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
-              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-          }`}
-        >
-          Tous
-        </button>
-        <button
-          onClick={() => setFilter('departure')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
-            filter === 'departure'
-              ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
-              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-          }`}
-        >
-          Départs
-        </button>
-        <button
-          onClick={() => setFilter('arrival')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
-            filter === 'arrival'
-              ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
-              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-          }`}
-        >
-          Arrivées
-        </button>
+      <div className="overflow-x-auto pb-2 -mx-4 sm:mx-0">
+        <div className="bg-white/80 backdrop-blur-xl p-2 rounded-2xl shadow-sm border border-slate-100 inline-flex min-w-min mx-4 sm:mx-0">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 sm:px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap touch-manipulation ${
+              filter === 'all' 
+                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+            }`}
+          >
+            Tous
+          </button>
+          <button
+            onClick={() => setFilter('departure')}
+            className={`px-4 sm:px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap touch-manipulation ${
+              filter === 'departure'
+                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+            }`}
+          >
+            Départs
+          </button>
+          <button
+            onClick={() => setFilter('arrival')}
+            className={`px-4 sm:px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap touch-manipulation ${
+              filter === 'arrival'
+                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+            }`}
+          >
+            Arrivées
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -261,10 +354,95 @@ const Flights = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 ml-6">
+                  <Link to={`/flights/edit/${flight._id}`}>
+                    <Button size="sm" variant="secondary">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  
+                  <Button 
+                    size="sm" 
+                    variant="danger"
+                    onClick={() => handleDeleteClick(flight)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  
+                  <div className="relative">
+                    <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => setShowStatusMenu(showStatusMenu === flight._id ? null : flight._id)}
+                >
+                  Statut <ChevronDown className="h-4 w-4 ml-1" />
+                </Button>
+
+                {showStatusMenu === flight._id && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
+                    {getAllowedStatusOptions(flight.status).map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => handleStatusChange(flight._id, option.value, flight.status)}
+                        disabled={isChangingStatus || flight.status === option.value}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition ${
+                          flight.status === option.value 
+                            ? 'bg-indigo-50 text-indigo-700 font-semibold' 
+                            : 'text-slate-700'
+                        } ${isChangingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {option.label}
+                        {flight.status === option.value && ' ✓'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                  </div>
+                </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {showDeleteModal && flightToDelete && (
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={() => !isDeleting && setShowDeleteModal(false)}
+          title="Confirmer la suppression"
+        >
+          <div className="py-4">
+            <p className="text-slate-700 mb-4">
+              Êtes-vous sûr de vouloir supprimer le vol <span className="font-bold text-slate-900">{flightToDelete.flightNumber}</span> ?
+            </p>
+            <p className="text-sm text-slate-500 mb-2">
+              {flightToDelete.originAirportCode} → {flightToDelete.destinationAirportCode}
+            </p>
+            <p className="text-sm text-amber-600">
+              ⚠️ Cette action est irréversible.
+            </p>
+          </div>
+          
+          <Modal.Footer>
+            <Button 
+              variant="secondary" 
+              onClick={() => setShowDeleteModal(false)}
+              disabled={isDeleting}
+            >
+              Annuler
+            </Button>
+            <Button 
+              variant="danger" 
+              onClick={confirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
+            </Button>
+          </Modal.Footer>
+        </Modal>
       )}
     </div>
   );

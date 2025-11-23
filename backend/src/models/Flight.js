@@ -138,12 +138,37 @@ const FlightSchema = new mongoose.Schema({
 FlightSchema.index({ flightNumber: 1, scheduledDeparture: -1 });
 FlightSchema.index({ originAirportCode: 1, scheduledDeparture: -1 });
 FlightSchema.index({ destinationAirportCode: 1, scheduledArrival: -1 });
+FlightSchema.index({ createdAt: -1 });
+
+// Index composé pour accélérer les requêtes typiques
+FlightSchema.index({ type: 1, scheduledDeparture: 1 });
+FlightSchema.index({ type: 1, scheduledArrival: 1 });
+FlightSchema.index({ status: 1 });
+FlightSchema.index({ airlineId: 1, scheduledDeparture: 1 });
+
+// Virtuals pour populer les détails des aéroports
+FlightSchema.virtual('originAirport', {
+  ref: 'Airport',
+  localField: 'originAirportCode',
+  foreignField: 'code',
+  justOne: true
+});
+
+FlightSchema.virtual('destinationAirport', {
+  ref: 'Airport',
+  localField: 'destinationAirportCode',
+  foreignField: 'code',
+  justOne: true
+});
+
+// S'assurer que les virtuels sont inclus dans les résultats JSON
+FlightSchema.set('toJSON', { virtuals: true });
+FlightSchema.set('toObject', { virtuals: true });
 FlightSchema.index({ status: 1 });
 FlightSchema.index({ linkedFlightId: 1 });
 FlightSchema.index({ airlineId: 1 });
 FlightSchema.index({ type: 1, originAirportCode: 1 });
 FlightSchema.index({ type: 1, destinationAirportCode: 1 });
-FlightSchema.index({ createdAt: -1 });
 
 // Validation : L'heure d'arrivée doit être après l'heure de départ
 FlightSchema.pre('validate', function(next) {

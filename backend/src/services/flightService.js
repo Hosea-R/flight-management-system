@@ -163,6 +163,11 @@ class FlightService {
 
     const oldStatus = flight.status;
 
+    // Si le statut est le même, on ne fait rien (idempotence)
+    if (oldStatus === newStatus) {
+      return { main: flight, linked: null };
+    }
+
     // 2. VALIDATIONS DES TRANSITIONS DE STATUT
     
     const validTransitions = {
@@ -172,8 +177,9 @@ class FlightService {
       'boarding': ['departed', 'delayed', 'cancelled'],
       'departed': ['in-flight'],
       'in-flight': ['landed'],
-      'landed': [], // État final
-      'cancelled': [] // État final
+      'landed': ['arrived'],
+      'arrived': [],
+      'cancelled': []
     };
 
     if (!validTransitions[oldStatus]?.includes(newStatus)) {
@@ -197,12 +203,13 @@ class FlightService {
     // 4. SYNCHRONISER LE VOL LIÉ
     
     let linkedFlight = null;
+    let linkedOldStatus = null; // Déclaré ici pour être accessible partout
     
     if (flight.linkedFlightId) {
       linkedFlight = await Flight.findById(flight.linkedFlightId).populate('airlineId', 'code name logo');
       
       if (linkedFlight) {
-        const linkedOldStatus = linkedFlight.status;
+        linkedOldStatus = linkedFlight.status;
         
         // RÈGLES DE SYNCHRONISATION
         if (flight.type === 'departure') {

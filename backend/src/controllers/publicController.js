@@ -20,6 +20,7 @@ exports.getArrivals = async (req, res) => {
       isActive: true
     })
       .populate('airlineId', 'name code logo')
+      .populate('originAirport', 'code city name')
       .sort({ scheduledArrival: 1 })
       .select('flightNumber originAirportCode scheduledArrival estimatedArrival actualArrival status remarks aircraft');
 
@@ -56,6 +57,7 @@ exports.getDepartures = async (req, res) => {
       isActive: true
     })
       .populate('airlineId', 'name code logo')
+      .populate('destinationAirport', 'code city name')
       .sort({ scheduledDeparture: 1 })
       .select('flightNumber destinationAirportCode scheduledDeparture estimatedDeparture actualDeparture status remarks aircraft');
 
@@ -93,6 +95,7 @@ exports.getAllFlights = async (req, res) => {
       isActive: true
     })
       .populate('airlineId', 'name code logo')
+      .populate('destinationAirport', 'code city name')
       .sort({ scheduledDeparture: 1 })
       .select('flightNumber destinationAirportCode scheduledDeparture estimatedDeparture actualDeparture status remarks aircraft type');
 
@@ -104,6 +107,7 @@ exports.getAllFlights = async (req, res) => {
       isActive: true
     })
       .populate('airlineId', 'name code logo')
+      .populate('originAirport', 'code city name')
       .sort({ scheduledArrival: 1 })
       .select('flightNumber originAirportCode scheduledArrival estimatedArrival actualArrival status remarks aircraft type');
 

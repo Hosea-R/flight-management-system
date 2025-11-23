@@ -28,11 +28,8 @@ const flightService = {
   },
 
   // Mettre à jour le statut d'un vol
-  updateFlightStatus: async (id, status, remarks) => {
-    const response = await api.patch(`/flights/${id}/status`, {
-      status,
-      remarks
-    });
+  updateFlightStatus: async (id, status) => {
+    const response = await api.patch(`/flights/${id}/status`, { status });
     return response.data;
   },
 

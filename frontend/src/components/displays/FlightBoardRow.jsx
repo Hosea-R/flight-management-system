@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { PlaneTakeoff, PlaneLanding } from 'lucide-react';
 import StatusIndicator from './StatusIndicator';
 
 const FlightBoardRow = ({ flight, type = 'departure', index }) => {
@@ -20,6 +21,10 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
   };
 
   const location = isArrival ? flight.originAirportCode : flight.destinationAirportCode;
+  const locationCity = isArrival 
+    ? (flight.originAirport?.city || flight.originAirportCode) 
+    : (flight.destinationAirport?.city || flight.destinationAirportCode);
+  
   const isDelayed = flight.status === 'delayed';
   const isCancelled = flight.status === 'cancelled';
 
@@ -31,8 +36,21 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
       }}
     >
       <div className="display-row-content">
-        {/* 1. Vol & Compagnie */}
+        {/* 1. Vol & Compagnie + Icône Type */}
         <div className="flex items-center space-x-3">
+          {/* Icône Départ/Arrivée */}
+          <div className={`flex-shrink-0 p-2 rounded-lg ${
+            isArrival 
+              ? 'bg-gradient-to-br from-emerald-500 to-teal-500' 
+              : 'bg-gradient-to-br from-indigo-500 to-violet-500'
+          }`}>
+            {isArrival ? (
+              <PlaneLanding className="h-5 w-5 text-white" strokeWidth={2.5} />
+            ) : (
+              <PlaneTakeoff className="h-5 w-5 text-white" strokeWidth={2.5} />
+            )}
+          </div>
+
           {flight.airlineId?.logo ? (
             <div className="h-10 w-10 bg-white rounded-md border border-slate-200 p-1.5 flex items-center justify-center">
               <img
@@ -58,10 +76,10 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
           </div>
         </div>
 
-        {/* 2. Destination / Origine */}
+        {/* 2. Destination / Origine - Nom de Ville */}
         <div>
           <div className="text-airport-code">
-            {location}
+            {locationCity}
           </div>
         </div>
 
@@ -84,17 +102,6 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
         {/* 5. Statut */}
         <div>
           <StatusIndicator status={flight.status} />
-        </div>
-
-        {/* 6. Remarques */}
-        <div className="text-right">
-          {flight.remarks ? (
-            <span className="text-sm font-semibold text-amber-600">
-              {flight.remarks}
-            </span>
-          ) : (
-            <span className="text-slate-300 text-lg">—</span>
-          )}
         </div>
       </div>
     </div>

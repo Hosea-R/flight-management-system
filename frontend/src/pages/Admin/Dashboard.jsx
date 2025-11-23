@@ -52,7 +52,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 page-transition">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -68,36 +68,42 @@ const AdminDashboard = () => {
 
       {/* Cartes de statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Départs"
-          value={stats?.today?.departures || 0}
-          icon={PlaneTakeoff}
-          color="blue"
-          change={5}
-          changeType="increase"
-        />
-        <StatCard
-          title="Arrivées"
-          value={stats?.today?.arrivals || 0}
-          icon={PlaneLanding}
-          color="green"
-          change={2}
-          changeType="increase"
-        />
-        <StatCard
-          title="Total Vols"
-          value={stats?.today?.total || 0}
-          icon={Plane}
-          color="indigo"
-        />
-        <StatCard
-          title="Retards"
-          value={stats?.delayedFlights || 0}
-          icon={AlertTriangle}
-          color="orange"
-          change={-1}
-          changeType="decrease"
-        />
+        {[
+          {
+            title: "Départs",
+            value: stats?.today?.departures || 0,
+            icon: PlaneTakeoff,
+            color: "blue",
+            change: 5,
+            changeType: "increase"
+          },
+          {
+            title: "Arrivées",
+            value: stats?.today?.arrivals || 0,
+            icon: PlaneLanding,
+            color: "green",
+            change: 2,
+            changeType: "increase"
+          },
+          {
+            title: "Total Vols",
+            value: stats?.today?.total || 0,
+            icon: Plane,
+            color: "indigo"
+          },
+          {
+            title: "Retards",
+            value: stats?.delayedFlights || 0,
+            icon: AlertTriangle,
+            color: "orange",
+            change: -1,
+            changeType: "decrease"
+          }
+        ].map((stat, index) => (
+          <div key={stat.title} className="stagger-item" style={{ animationDelay: `${index * 50}ms` }}>
+            <StatCard {...stat} />
+          </div>
+        ))}
       </div>
 
       {/* Graphique historique */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import useSocket from '../../hooks/useSocket';
@@ -96,6 +96,25 @@ const GeneralBoard = () => {
     }
   };
 
+  // Fusionner et trier tous les vols par ordre chronologique
+  const allFlights = React.useMemo(() => {
+    const combined = [
+      ...departures.map(f => ({ ...f, displayType: 'departure' })),
+      ...arrivals.map(f => ({ ...f, displayType: 'arrival' }))
+    ];
+    
+    // Trier par heure (départ ou arrivée selon le type)
+    return combined.sort((a, b) => {
+      const timeA = a.displayType === 'departure' 
+        ? new Date(a.scheduledDeparture) 
+        : new Date(a.scheduledArrival);
+      const timeB = b.displayType === 'departure'
+        ? new Date(b.scheduledDeparture)
+        : new Date(b.scheduledArrival);
+      return timeA - timeB;
+    });
+  }, [departures, arrivals]);
+
   if (loading) {
     return <Loading fullScreen text="Chargement des vols..." />;
   }
@@ -109,67 +128,33 @@ const GeneralBoard = () => {
       />
 
       <div className="display-scroll-container">
-        {/* Section Départs */}
-        <div className="display-section">
-          <h2 className="display-section-title">DÉPARTS / DEPARTURES</h2>
-          
-          <div className="display-table-header">
-            <div className="col-span-2">VOL</div>
-            <div className="col-span-2">DESTINATION</div>
-            <div className="col-span-2">HEURE PRÉVUE</div>
-            <div className="col-span-2">HEURE ESTIMÉE</div>
-            <div className="col-span-3">STATUT</div>
-            <div className="col-span-1">INFO</div>
-          </div>
-
-          {departures.length === 0 ? (
-            <div className="display-empty py-10">
-              <p className="text-xl">Aucun départ prévu</p>
-            </div>
-          ) : (
-            <div>
-              {departures.slice(0, 10).map((flight, index) => (
-                <FlightBoardRow
-                  key={flight._id}
-                  flight={flight}
-                  type="departure"
-                  index={index}
-                />
-              ))}
-            </div>
-          )}
+        {/* Header unique pour tous les vols */}
+        <div className="display-table-header">
+          <div className="col-span-2">VOL</div>
+          <div className="col-span-3">DESTINATION / ORIGINE</div>
+          <div className="col-span-2">HEURE PRÉVUE</div>
+          <div className="col-span-2">HEURE ESTIMÉE</div>
+          <div className="col-span-2">STATUT</div>
         </div>
 
-        {/* Section Arrivées */}
-        <div className="display-section">
-          <h2 className="display-section-title">ARRIVÉES / ARRIVALS</h2>
-          
-          <div className="display-table-header">
-            <div className="col-span-2">VOL</div>
-            <div className="col-span-2">ORIGINE</div>
-            <div className="col-span-2">HEURE PRÉVUE</div>
-            <div className="col-span-2">HEURE ESTIMÉE</div>
-            <div className="col-span-3">STATUT</div>
-            <div className="col-span-1">INFO</div>
+        {/* Tous les vols mélangés */}
+        {allFlights.length === 0 ? (
+          <div className="display-empty">
+            <Plane className="h-24 w-24 mb-4 opacity-50" />
+            <p className="text-2xl">Aucun vol prévu pour aujourd'hui</p>
           </div>
-
-          {arrivals.length === 0 ? (
-            <div className="display-empty py-10">
-              <p className="text-xl">Aucune arrivée prévue</p>
-            </div>
-          ) : (
-            <div>
-              {arrivals.slice(0, 10).map((flight, index) => (
-                <FlightBoardRow
-                  key={flight._id}
-                  flight={flight}
-                  type="arrival"
-                  index={index}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        ) : (
+          <div>
+            {allFlights.slice(0, 20).map((flight, index) => (
+              <FlightBoardRow
+                key={flight._id}
+                flight={flight}
+                type={flight.displayType}
+                index={index}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

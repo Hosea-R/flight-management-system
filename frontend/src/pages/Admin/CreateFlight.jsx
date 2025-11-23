@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import flightService from '../../services/flightService';
 import airportService from '../../services/airportService';
 import airlineService from '../../services/airlineService';
@@ -9,7 +9,9 @@ import Button from '../../components/common/Button';
 
 const CreateFlight = () => {
   const navigate = useNavigate();
+  const { id } = useParams(); // Si id existe, on est en mode édition
   const { user } = useAuth();
+  const isEditMode = !!id;
   const [airports, setAirports] = useState([]);
   const [airlines, setAirlines] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +38,22 @@ const CreateFlight = () => {
         const destinations = airportsData.data.filter(a => a.code !== user.airportCode);
         setAirports(destinations);
         setAirlines(airlinesData.data);
+        
+        // Si mode édition, charger les données du vol
+        if (isEditMode) {
+          const flightData = await flightService.getFlightById(id);
+          const flight = flightData.data;
+          setFormData({
+            flightNumber: flight.flightNumber || '',
+            airlineId: flight.airlineId?._id || '',
+            destinationAirportCode: flight.destinationAirportCode || '',
+            scheduledDeparture: flight.scheduledDeparture ? new Date(flight.scheduledDeparture).toISOString().slice(0, 16) : '',
+            aircraftType: flight.aircraft?.type || '',
+            aircraftRegistration: flight.aircraft?.registration || '',
+            capacity: flight.aircraft?.capacity || ''
+          });
+        }
+        
         setLoading(false);
       } catch (err) {
         setError('Erreur lors du chargement des données');
@@ -43,7 +61,7 @@ const CreateFlight = () => {
       }
     };
     fetchData();
-  }, [user.airportCode]);
+  }, [user.airportCode, isEditMode, id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -58,14 +76,27 @@ const CreateFlight = () => {
     setError('');
     
     try {
-      await flightService.createFlight({
-        ...formData,
-        originAirportCode: user.airportCode, // L'origine est toujours l'aéroport de l'admin
-        type: 'departure' // On crée toujours un départ (l'arrivée est auto-générée)
-      });
+      if (isEditMode) {
+        // Mode édition
+        await flightService.updateFlightDetails(id, {
+          ...formData,
+          aircraft: {
+            type: formData.aircraftType,
+            registration: formData.aircraftRegistration,
+            capacity: formData.capacity
+          }
+        });
+      } else {
+        // Mode création
+        await flightService.createFlight({
+          ...formData,
+          originAirportCode: user.airportCode,
+          type: 'departure'
+        });
+      }
       navigate('/flights');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erreur lors de la création du vol');
+      setError(err.response?.data?.message || `Erreur lors de ${isEditMode ? 'la modification' : 'la création'} du vol`);
     }
   };
 
@@ -83,7 +114,7 @@ const CreateFlight = () => {
             <div className="p-2 bg-blue-50 rounded-xl">
               <Plane className="h-8 w-8 text-blue-600" />
             </div>
-            Nouveau Vol
+            {isEditMode ? 'Modifier le Vol' : 'Nouveau Vol'}
           </h2>
           <p className="mt-2 text-slate-500 text-lg">
             Départ de <span className="font-bold text-blue-600">{user.airportCode}</span>

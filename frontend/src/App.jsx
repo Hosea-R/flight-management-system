@@ -67,6 +67,11 @@ function App() {
                 <CreateFlight />
               </ProtectedRoute>
             } />
+            <Route path="flights/edit/:id" element={
+              <ProtectedRoute roles={['admin']}>
+                <CreateFlight />
+              </ProtectedRoute>
+            } />
 
             {/* Routes SuperAdmin */}
             <Route path="airports" element={

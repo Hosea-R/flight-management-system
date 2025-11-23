@@ -124,7 +124,7 @@ const Airports = () => {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 page-transition">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
@@ -155,10 +155,11 @@ const Airports = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {airports.map((airport) => (
+        {airports.map((airport, index) => (
           <div 
             key={airport._id} 
-            className="group bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white/50 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 hover:-translate-y-1"
+            className="stagger-item group bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white/50 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 hover:-translate-y-1 card-lift"
+            style={{ animationDelay: `${index * 50}ms` }}
           >
             <div className="flex justify-between items-start mb-4">
               <div>

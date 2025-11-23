@@ -20,7 +20,7 @@ const BoardHeader = ({ airportCode, airportName, type }) => {
       <div className="flex items-center justify-between px-10 py-6">
         {/* Logo et Nom */}
         <div className="flex items-center space-x-5">
-          <div className="bg-blue-500 p-2.5 rounded-lg">
+          <div className="bg-gradient-to-br from-indigo-500 to-violet-500 p-2.5 rounded-xl shadow-lg shadow-indigo-500/30">
             <Plane className="h-7 w-7 text-white" strokeWidth={2.5} />
           </div>
           <div>

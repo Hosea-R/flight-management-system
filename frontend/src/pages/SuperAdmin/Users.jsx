@@ -111,7 +111,7 @@ const Users = () => {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 page-transition">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -184,10 +184,11 @@ const Users = () => {
 
       {/* Grid Layout for Users */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {users.map((user) => (
+        {users.map((user, index) => (
           <div 
             key={user._id} 
-            className="group bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white/50 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 hover:-translate-y-1"
+            className="stagger-item group bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white/50 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 hover:-translate-y-1 card-lift"
+            style={{ animationDelay: `${index * 50}ms` }}
           >
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-4">

@@ -99,11 +99,10 @@ const ArrivalBoard = () => {
         {/* En-têtes de colonnes */}
         <div className="display-table-header">
           <div className="col-span-2">VOL</div>
-          <div className="col-span-2">ORIGINE</div>
+          <div className="col-span-3">ORIGINE</div>
           <div className="col-span-2">HEURE PRÉVUE</div>
           <div className="col-span-2">HEURE ESTIMÉE</div>
-          <div className="col-span-3">STATUT</div>
-          <div className="col-span-1">INFO</div>
+          <div className="col-span-2">STATUT</div>
         </div>
 
         {/* Lignes de vols */}

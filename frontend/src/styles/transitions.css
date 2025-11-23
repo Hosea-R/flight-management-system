@@ -1,0 +1,360 @@
+/**
+ * Global Transitions & Animations
+ * Aesthetic & Light Theme
+ * 
+ * Performance-optimized animations using GPU-accelerated properties:
+ * - transform (translate, scale, rotate)
+ * - opacity
+ * - filter (backdrop-blur)
+ */
+
+/* ========================================
+   TRANSITION UTILITIES
+   ======================================== */
+
+/* Base transition speeds */
+.transition-fast {
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-normal {
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-slow {
+    transition-duration: 300ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth transitions for all interactive elements */
+.transition-smooth {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   INTERACTIVE STATES
+   ======================================== */
+
+/* Card hover lift effect */
+.card-lift {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Button press effect */
+.btn-press {
+    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-press:active {
+    transform: scale(0.97);
+}
+
+/* Subtle scale on hover */
+.hover-scale {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-scale:hover {
+    transform: scale(1.02);
+}
+
+/* Border glow on hover */
+.hover-glow {
+    transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-glow:hover {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Slide in from bottom */
+@keyframes slideInBottom {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-in-bottom {
+    animation: slideInBottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Zoom in */
+@keyframes zoomIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-zoom-in {
+    animation: zoomIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pulse (for loading/attention) */
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.animate-pulse-soft {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.animate-shimmer {
+    background: linear-gradient(90deg,
+            rgba(241, 245, 249, 0) 0%,
+            rgba(241, 245, 249, 0.5) 50%,
+            rgba(241, 245, 249, 0) 100%);
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+}
+
+/* Shake (for errors) */
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-4px);
+    }
+
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(4px);
+    }
+}
+
+.animate-shake {
+    animation: shake 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Bounce (for success) */
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.animate-bounce-soft {
+    animation: bounce 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Stagger animation for lists */
+.stagger-item {
+    opacity: 0;
+    animation: slideInBottom 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.stagger-item:nth-child(1) {
+    animation-delay: 0ms;
+}
+
+.stagger-item:nth-child(2) {
+    animation-delay: 50ms;
+}
+
+.stagger-item:nth-child(3) {
+    animation-delay: 100ms;
+}
+
+.stagger-item:nth-child(4) {
+    animation-delay: 150ms;
+}
+
+.stagger-item:nth-child(5) {
+    animation-delay: 200ms;
+}
+
+.stagger-item:nth-child(6) {
+    animation-delay: 250ms;
+}
+
+.stagger-item:nth-child(7) {
+    animation-delay: 300ms;
+}
+
+.stagger-item:nth-child(8) {
+    animation-delay: 350ms;
+}
+
+.stagger-item:nth-child(9) {
+    animation-delay: 400ms;
+}
+
+.stagger-item:nth-child(10) {
+    animation-delay: 450ms;
+}
+
+/* ========================================
+   PAGE TRANSITIONS
+   ======================================== */
+
+/* Page fade transition */
+.page-transition {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Modal backdrop fade */
+.modal-backdrop {
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Modal content zoom */
+.modal-content {
+    animation: zoomIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .card-lift:hover {
+        transform: none;
+    }
+
+    .hover-scale:hover {
+        transform: none;
+    }
+}
+
+/* ========================================
+   FOCUS STATES
+   ======================================== */
+
+/* Modern focus ring */
+.focus-ring {
+    transition: box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.focus-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+/* ========================================
+   LOADING STATES
+   ======================================== */
+
+/* Skeleton pulse */
+.skeleton {
+    background: linear-gradient(90deg,
+            #f1f5f9 0%,
+            #e2e8f0 50%,
+            #f1f5f9 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* Spinner rotation */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin-slow {
+    animation: spin 1.5s linear infinite;
+}
