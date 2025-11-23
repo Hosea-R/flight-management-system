@@ -22,6 +22,7 @@ const CreateFlight = () => {
     airlineId: '',
     destinationAirportCode: '',
     scheduledDeparture: '',
+    scheduledArrival: '',
     aircraftType: '',
     aircraftRegistration: '',
     capacity: ''
@@ -43,11 +44,13 @@ const CreateFlight = () => {
         if (isEditMode) {
           const flightData = await flightService.getFlightById(id);
           const flight = flightData.data;
+          
           setFormData({
             flightNumber: flight.flightNumber || '',
             airlineId: flight.airlineId?._id || '',
             destinationAirportCode: flight.destinationAirportCode || '',
             scheduledDeparture: flight.scheduledDeparture ? new Date(flight.scheduledDeparture).toISOString().slice(0, 16) : '',
+            scheduledArrival: flight.scheduledArrival ? new Date(flight.scheduledArrival).toISOString().slice(0, 16) : '',
             aircraftType: flight.aircraft?.type || '',
             aircraftRegistration: flight.aircraft?.registration || '',
             capacity: flight.aircraft?.capacity || ''
@@ -76,20 +79,27 @@ const CreateFlight = () => {
     setError('');
     
     try {
+      // Préparer le payload avec la structure correcte
+      const flightPayload = {
+        flightNumber: formData.flightNumber,
+        airlineId: formData.airlineId,
+        destinationAirportCode: formData.destinationAirportCode,
+        scheduledDeparture: formData.scheduledDeparture,
+        scheduledArrival: formData.scheduledArrival,
+        aircraft: {
+          type: formData.aircraftType,
+          registration: formData.aircraftRegistration,
+          capacity: parseInt(formData.capacity)
+        }
+      };
+      
       if (isEditMode) {
         // Mode édition
-        await flightService.updateFlightDetails(id, {
-          ...formData,
-          aircraft: {
-            type: formData.aircraftType,
-            registration: formData.aircraftRegistration,
-            capacity: formData.capacity
-          }
-        });
+        await flightService.updateFlightDetails(id, flightPayload);
       } else {
         // Mode création
         await flightService.createFlight({
-          ...formData,
+          ...flightPayload,
           originAirportCode: user.airportCode,
           type: 'departure'
         });
@@ -228,6 +238,25 @@ const CreateFlight = () => {
                   type="datetime-local"
                   name="scheduledDeparture"
                   value={formData.scheduledDeparture}
+                  onChange={handleInputChange}
+                  className="block w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all duration-300 font-medium placeholder-slate-400"
+                  required
+                />
+              </div>
+            </div>
+
+
+            {/* Arrivée Prévue */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 ml-1">Arrivée Prévue</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Clock className="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                </div>
+                <input
+                  type="datetime-local"
+                  name="scheduledArrival"
+                  value={formData.scheduledArrival}
                   onChange={handleInputChange}
                   className="block w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all duration-300 font-medium placeholder-slate-400"
                   required
