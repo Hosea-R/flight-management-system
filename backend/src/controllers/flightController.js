@@ -1,5 +1,7 @@
 const { Flight } = require('../models');
 const FlightService = require('../services/flightService');
+const logger = require('../config/logger');
+const { formatPaginatedResponse } = require('../middleware/pagination.middleware');
 
 // @desc    Créer un vol de départ (crée automatiquement l'arrivée)
 // @route   POST /api/flights
@@ -35,8 +37,20 @@ exports.createFlight = async (req, res) => {
       }
     });
 
+    logger.info('Vol créé avec succès', {
+      userId: req.user.id,
+      departureId: departure._id,
+      arrivalId: arrival._id,
+      flightNumber: departure.flightNumber,
+      route: `${departure.originAirportCode} → ${departure.destinationAirportCode}`
+    });
+
   } catch (error) {
-    console.error('Erreur lors de la création du vol:', error);
+    logger.error('Erreur lors de la création du vol', {
+      error: error.message,
+      userId: req.user.id,
+      body: req.body
+    });
     res.status(500).json({
       success: false,
       message: error.message || 'Erreur lors de la création du vol'
@@ -270,7 +284,17 @@ exports.updateFlightStatus = async (req, res) => {
     }
 
     // Mettre à jour via le service (synchronise automatiquement)
+    const oldStatus = flight.status;
     const result = await FlightService.updateFlightStatus(id, status, io);
+
+    logger.info('Statut de vol mis à jour', {
+      userId: req.user.id,
+      flightId: id,
+      flightNumber: flight.flightNumber,
+      oldStatus,
+      newStatus: status,
+      route: `${flight.originAirportCode} → ${flight.destinationAirportCode}`
+    });
 
     res.status(200).json({
       success: true,
@@ -279,7 +303,12 @@ exports.updateFlightStatus = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du statut:', error);
+    logger.error('Erreur lors de la mise à jour du statut', {
+      error: error.message,
+      userId: req.user?.id,
+      flightId: req.params.id,
+      requestedStatus: req.body.status
+    });
     res.status(400).json({
       success: false,
       message: error.message || 'Erreur lors de la mise à jour du statut'
@@ -411,6 +440,14 @@ exports.deleteFlight = async (req, res) => {
     // Supprimer via le service
     const result = await FlightService.deleteFlightPair(id, io);
 
+    logger.warn('Vol supprimé (paire complète)', {
+      userId: req.user.id,
+      flightId: id,
+      flightNumber: flight.flightNumber,
+      route: `${flight.originAirportCode} → ${flight.destinationAirportCode}`,
+      deletedCount: result.deletedFlights
+    });
+
     res.status(200).json({
       success: true,
       message: result.message,
@@ -420,7 +457,11 @@ exports.deleteFlight = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erreur lors de la suppression du vol:', error);
+    logger.error('Erreur lors de la suppression du vol', {
+      error: error.message,
+      userId: req.user?.id,
+      flightId: req.params.id
+    });
     res.status(500).json({
       success: false,
       message: error.message || 'Erreur lors de la suppression du vol'

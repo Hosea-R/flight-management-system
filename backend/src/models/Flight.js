@@ -129,6 +129,12 @@ const FlightSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+
+  // Date d'archivage (pour les vols nettoyés)
+  archivedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

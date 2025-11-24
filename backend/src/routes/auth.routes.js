@@ -18,8 +18,10 @@ const {
   validateLogin
 } = require('../middleware/validate.middleware');
 
+const { loginRateLimiter } = require('../middleware/security.middleware');
+
 // Routes publiques
-router.post('/login', validateLogin, login);
+router.post('/login', loginRateLimiter, validateLogin, login);
 router.post('/logout', logout);
 
 // Routes protégées
