@@ -14,10 +14,13 @@ import {
 } from 'lucide-react';
 
 const DashboardLayout = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, activeAirportCode } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Déterminer le rôle effectif : si superadmin avec contexte actif, se comporter comme admin
+  const effectiveRole = user?.role === 'superadmin' && activeAirportCode ? 'admin' : user?.role;
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['superadmin', 'admin'] },
@@ -28,7 +31,7 @@ const DashboardLayout = () => {
     { name: 'Écrans Publics', href: '/public-displays', icon: Monitor, roles: ['superadmin', 'admin'] },
   ];
 
-  const filteredNavigation = navigation.filter(item => item.roles.includes(user?.role));
+  const filteredNavigation = navigation.filter(item => item.roles.includes(effectiveRole));
 
   const handleLogout = () => {
     logout();

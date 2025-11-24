@@ -1,6 +1,6 @@
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
-const StatCard = ({ title, value, icon: Icon, change, changeType, color = 'indigo' }) => {
+const StatCard = ({ title, value, icon: Icon, change, changeType, color = 'indigo', subtitle }) => {
   const colorStyles = {
     indigo: {
       bg: 'bg-white',
@@ -81,6 +81,11 @@ const StatCard = ({ title, value, icon: Icon, change, changeType, color = 'indig
           <h3 className="mt-2 text-3xl font-bold text-slate-900 tracking-tight">
             {value}
           </h3>
+          {subtitle && (
+            <p className="text-xs text-slate-500 mt-2 font-medium">
+              {subtitle}
+            </p>
+          )}
           {renderTrend()}
         </div>
         <div className={`p-3 rounded-xl ${style.iconBg} ${style.text} shadow-sm group-hover:scale-110 transition-transform duration-300`}>

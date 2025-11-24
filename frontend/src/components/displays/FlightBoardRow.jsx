@@ -37,22 +37,22 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
     >
       <div className="display-row-content">
         {/* 1. Vol & Compagnie + Icône Type */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-4">
           {/* Icône Départ/Arrivée */}
-          <div className={`flex-shrink-0 p-2 rounded-lg ${
+          <div className={`flex-shrink-0 p-2 rounded-lg border ${
             isArrival 
-              ? 'bg-gradient-to-br from-emerald-500 to-teal-500' 
-              : 'bg-gradient-to-br from-indigo-500 to-violet-500'
+              ? 'bg-emerald-50 border-emerald-100' 
+              : 'bg-blue-50 border-blue-100'
           }`}>
             {isArrival ? (
-              <PlaneLanding className="h-5 w-5 text-white" strokeWidth={2.5} />
+              <PlaneLanding className={`h-6 w-6 ${isArrival ? 'text-emerald-600' : 'text-blue-600'}`} strokeWidth={2} />
             ) : (
-              <PlaneTakeoff className="h-5 w-5 text-white" strokeWidth={2.5} />
+              <PlaneTakeoff className={`h-6 w-6 ${isArrival ? 'text-emerald-600' : 'text-blue-600'}`} strokeWidth={2} />
             )}
           </div>
 
           {flight.airlineId?.logo ? (
-            <div className="h-10 w-10 bg-white rounded-md border border-slate-200 p-1.5 flex items-center justify-center">
+            <div className="h-20 w-20 bg-white rounded-lg border border-slate-100 p-1 flex items-center justify-center shadow-sm">
               <img
                 src={flight.airlineId.logo}
                 alt={flight.airlineId.name}
@@ -60,17 +60,17 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
               />
             </div>
           ) : (
-            <div className="h-10 w-10 bg-slate-100 rounded-md flex items-center justify-center">
-              <span className="text-xs font-bold text-slate-600">
+            <div className="h-20 w-20 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center">
+              <span className="text-xl font-bold text-slate-500 font-mono">
                 {flight.airlineId?.code || 'XX'}
               </span>
             </div>
           )}
           <div className="flex flex-col">
-            <span className="text-flight-number">
+            <span className="text-flight-number text-slate-900 text-2xl tracking-wider">
               {flight.airlineId?.code}{flight.flightNumber}
             </span>
-            <span className="text-xs text-slate-500 font-medium truncate max-w-[140px]">
+            <span className="text-xs text-slate-500 font-medium uppercase tracking-wider leading-tight">
               {flight.airlineId?.name}
             </span>
           </div>
@@ -78,8 +78,11 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
 
         {/* 2. Destination / Origine - Nom de Ville */}
         <div>
-          <div className="text-airport-code">
+          <div className="text-airport-code text-slate-900">
             {locationCity}
+          </div>
+          <div className="text-city-name mt-1">
+            {isArrival ? 'Provenance' : 'Destination'}
           </div>
         </div>
 
@@ -90,8 +93,8 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
 
         {/* 4. Heure Estimée/Réelle */}
         <div className={`text-time font-bold ${
-          isDelayed ? 'text-orange-600' : 
-          isCancelled ? 'text-red-600 line-through' : 
+          isDelayed ? 'text-amber-600' : 
+          isCancelled ? 'text-rose-600 line-through decoration-2' : 
           'text-slate-900'
         }`}>
           {isCancelled ? '--:--' : 

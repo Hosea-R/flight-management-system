@@ -11,22 +11,30 @@ exports.getGlobalStats = async (req, res) => {
     const startOfDay = moment().startOf('day').toDate();
     const endOfDay = moment().endOf('day').toDate();
 
-    // 1. Total vols aujourd'hui
-    const totalFlights = await Flight.countDocuments({
-      $or: [
-        { scheduledDeparture: { $gte: startOfDay, $lte: endOfDay } },
-        { scheduledArrival: { $gte: startOfDay, $lte: endOfDay } }
-      ],
+    // 1. Départs aujourd'hui (seulement les vols de type 'departure')
+    const totalDepartures = await Flight.countDocuments({
+      type: 'departure',
+      scheduledDeparture: { $gte: startOfDay, $lte: endOfDay },
       isActive: true
     });
 
-    // 2. Vols par statut
+    // 2. Arrivées aujourd'hui (seulement les vols de type 'arrival')
+    const totalArrivals = await Flight.countDocuments({
+      type: 'arrival',
+      scheduledArrival: { $gte: startOfDay, $lte: endOfDay },
+      isActive: true
+    });
+
+    // 3. Total vols (départs + arrivées, pas de double comptage)
+    const totalFlights = totalDepartures + totalArrivals;
+
+    // 4. Vols par statut (tous types confondus)
     const flightsByStatus = await Flight.aggregate([
       {
         $match: {
           $or: [
-            { scheduledDeparture: { $gte: startOfDay, $lte: endOfDay } },
-            { scheduledArrival: { $gte: startOfDay, $lte: endOfDay } }
+            { type: 'departure', scheduledDeparture: { $gte: startOfDay, $lte: endOfDay } },
+            { type: 'arrival', scheduledArrival: { $gte: startOfDay, $lte: endOfDay } }
           ],
           isActive: true
         }
@@ -42,6 +50,7 @@ exports.getGlobalStats = async (req, res) => {
     // Transformer en objet pour faciliter l'accès
     const statusCounts = {
       scheduled: 0,
+      'on-time': 0,
       boarding: 0,
       departed: 0,
       'in-flight': 0,
@@ -57,13 +66,13 @@ exports.getGlobalStats = async (req, res) => {
       }
     });
 
-    // 3. Vols par compagnie (top 5)
+    // 5. Vols par compagnie (top 5)
     const flightsByAirline = await Flight.aggregate([
       {
         $match: {
           $or: [
-            { scheduledDeparture: { $gte: startOfDay, $lte: endOfDay } },
-            { scheduledArrival: { $gte: startOfDay, $lte: endOfDay } }
+            { type: 'departure', scheduledDeparture: { $gte: startOfDay, $lte: endOfDay } },
+            { type: 'arrival', scheduledArrival: { $gte: startOfDay, $lte: endOfDay } }
           ],
           isActive: true
         }
@@ -100,26 +109,32 @@ exports.getGlobalStats = async (req, res) => {
       }
     ]);
 
-    // 4. Nombre d'aéroports actifs
+    // 6. Nombre d'aéroports actifs
     const activeAirports = await Airport.countDocuments({ isActive: true });
 
-    // 5. Historique 7 derniers jours
+    // 7. Historique 7 derniers jours
     const last7Days = [];
     for (let i = 6; i >= 0; i--) {
       const dayStart = moment().subtract(i, 'days').startOf('day').toDate();
       const dayEnd = moment().subtract(i, 'days').endOf('day').toDate();
 
-      const count = await Flight.countDocuments({
-        $or: [
-          { scheduledDeparture: { $gte: dayStart, $lte: dayEnd } },
-          { scheduledArrival: { $gte: dayStart, $lte: dayEnd } }
-        ],
+      const departuresCount = await Flight.countDocuments({
+        type: 'departure',
+        scheduledDeparture: { $gte: dayStart, $lte: dayEnd },
+        isActive: true
+      });
+
+      const arrivalsCount = await Flight.countDocuments({
+        type: 'arrival',
+        scheduledArrival: { $gte: dayStart, $lte: dayEnd },
         isActive: true
       });
 
       last7Days.push({
         date: moment(dayStart).format('DD/MM'),
-        flights: count
+        departures: departuresCount,
+        arrivals: arrivalsCount,
+        total: departuresCount + arrivalsCount
       });
     }
 
@@ -127,6 +142,8 @@ exports.getGlobalStats = async (req, res) => {
       success: true,
       data: {
         totalFlights,
+        totalDepartures,
+        totalArrivals,
         delayed: statusCounts.delayed,
         cancelled: statusCounts.cancelled,
         activeAirports,
@@ -165,6 +182,7 @@ exports.getAirportStats = async (req, res) => {
 
     // 1. Départs aujourd'hui
     const departures = await Flight.countDocuments({
+      type: 'departure', // Filtrer par type
       originAirportCode: airportCode.toUpperCase(),
       scheduledDeparture: { $gte: startOfDay, $lte: endOfDay },
       isActive: true
@@ -172,6 +190,7 @@ exports.getAirportStats = async (req, res) => {
 
     // 2. Arrivées aujourd'hui
     const arrivals = await Flight.countDocuments({
+      type: 'arrival', // Filtrer par type
       destinationAirportCode: airportCode.toUpperCase(),
       scheduledArrival: { $gte: startOfDay, $lte: endOfDay },
       isActive: true
@@ -180,8 +199,8 @@ exports.getAirportStats = async (req, res) => {
     // 3. Vols en retard
     const delayedFlights = await Flight.countDocuments({
       $or: [
-        { originAirportCode: airportCode.toUpperCase() },
-        { destinationAirportCode: airportCode.toUpperCase() }
+        { type: 'departure', originAirportCode: airportCode.toUpperCase() },
+        { type: 'arrival', destinationAirportCode: airportCode.toUpperCase() }
       ],
       status: 'delayed',
       isActive: true
@@ -189,6 +208,7 @@ exports.getAirportStats = async (req, res) => {
 
     // 4. Prochains départs (5 prochains)
     const upcomingDepartures = await Flight.find({
+      type: 'departure', // Filtrer par type
       originAirportCode: airportCode.toUpperCase(),
       scheduledDeparture: { $gte: new Date() },
       isActive: true
@@ -200,6 +220,7 @@ exports.getAirportStats = async (req, res) => {
 
     // 5. Prochaines arrivées (5 prochaines)
     const upcomingArrivals = await Flight.find({
+      type: 'arrival', // Filtrer par type
       destinationAirportCode: airportCode.toUpperCase(),
       scheduledArrival: { $gte: new Date() },
       isActive: true
@@ -216,12 +237,14 @@ exports.getAirportStats = async (req, res) => {
       const dayEnd = moment().subtract(i, 'days').endOf('day').toDate();
 
       const departuresCount = await Flight.countDocuments({
+        type: 'departure', // Filtrer par type
         originAirportCode: airportCode.toUpperCase(),
         scheduledDeparture: { $gte: dayStart, $lte: dayEnd },
         isActive: true
       });
 
       const arrivalsCount = await Flight.countDocuments({
+        type: 'arrival', // Filtrer par type
         destinationAirportCode: airportCode.toUpperCase(),
         scheduledArrival: { $gte: dayStart, $lte: dayEnd },
         isActive: true

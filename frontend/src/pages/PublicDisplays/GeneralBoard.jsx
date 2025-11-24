@@ -25,47 +25,46 @@ const GeneralBoard = () => {
   }, [airportCode]);
 
   // Écouter les mises à jour temps réel
+  // Écouter les mises à jour temps réel
   useEffect(() => {
     if (socket && airportCode) {
+      // Rejoindre la room de l'aéroport
+      if (socket.isConnected) {
+        socket.joinAirport(airportCode.toUpperCase());
+      }
+
       const handleFlightUpdate = (updatedFlight) => {
         const code = airportCode.toUpperCase();
         
         // Mise à jour des départs
         if (updatedFlight.originAirportCode === code && updatedFlight.type === 'departure') {
-          setDepartures(prevFlights => {
-            const exists = prevFlights.find(f => f._id === updatedFlight._id);
+          setDepartures(prev => {
+            const exists = prev.find(f => f._id === updatedFlight._id);
             if (exists) {
-              return prevFlights.map(f => 
-                f._id === updatedFlight._id ? updatedFlight : f
-              );
+              return prev.map(f => f._id === updatedFlight._id ? updatedFlight : f);
             } else {
-              return [updatedFlight, ...prevFlights].sort((a, b) => 
-                new Date(a.scheduledDeparture) - new Date(b.scheduledDeparture)
-              );
+              return [updatedFlight, ...prev];
             }
           });
         }
         
         // Mise à jour des arrivées
         if (updatedFlight.destinationAirportCode === code && updatedFlight.type === 'arrival') {
-          setArrivals(prevFlights => {
-            const exists = prevFlights.find(f => f._id === updatedFlight._id);
+          setArrivals(prev => {
+            const exists = prev.find(f => f._id === updatedFlight._id);
             if (exists) {
-              return prevFlights.map(f => 
-                f._id === updatedFlight._id ? updatedFlight : f
-              );
+              return prev.map(f => f._id === updatedFlight._id ? updatedFlight : f);
             } else {
-              return [updatedFlight, ...prevFlights].sort((a, b) => 
-                new Date(a.scheduledArrival) - new Date(b.scheduledArrival)
-              );
+              return [updatedFlight, ...prev];
             }
           });
         }
       };
 
-      const handleFlightDelete = (deletedFlightId) => {
-        setDepartures(prev => prev.filter(f => f._id !== deletedFlightId));
-        setArrivals(prev => prev.filter(f => f._id !== deletedFlightId));
+      const handleFlightDelete = (data) => {
+        const flightId = data.flightId || data;
+        setDepartures(prev => prev.filter(f => f._id !== flightId));
+        setArrivals(prev => prev.filter(f => f._id !== flightId));
       };
 
       socket.on('flight:created', handleFlightUpdate);
@@ -130,10 +129,10 @@ const GeneralBoard = () => {
       <div className="display-scroll-container">
         {/* Header unique pour tous les vols */}
         <div className="display-table-header">
-          <div className="col-span-2">VOL</div>
+          <div className="col-span-3">VOL</div>
           <div className="col-span-3">DESTINATION / ORIGINE</div>
-          <div className="col-span-2">HEURE PRÉVUE</div>
-          <div className="col-span-2">HEURE ESTIMÉE</div>
+          <div className="col-span-2">PROGRAMMÉ</div>
+          <div className="col-span-2">PRÉVU</div>
           <div className="col-span-2">STATUT</div>
         </div>
 

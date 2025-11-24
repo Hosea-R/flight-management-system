@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import airportService from '../../services/airportService';
-import { Plus, Edit, Trash2, MapPin, Phone, Mail, Globe, Navigation } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Phone, Mail, Globe, Navigation, ExternalLink } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 import Loading from '../../components/common/Loading';
 
 const Airports = () => {
+  const navigate = useNavigate();
+  const { setActiveAirport } = useAuth();
   const [airports, setAirports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,6 +26,12 @@ const Airports = () => {
     phone: '',
     email: ''
   });
+
+  // Handler pour accéder au dashboard d'un aéroport
+  const handleAccessAirport = (airportCode) => {
+    setActiveAirport(airportCode);
+    navigate('/');
+  };
 
   useEffect(() => {
     fetchAirports();
@@ -158,30 +168,36 @@ const Airports = () => {
         {airports.map((airport, index) => (
           <div 
             key={airport._id} 
-            className="stagger-item group bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white/50 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 hover:-translate-y-1 card-lift"
+            className="stagger-item group bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white/50 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 hover:-translate-y-1 card-lift cursor-pointer"
             style={{ animationDelay: `${index * 50}ms` }}
+            onClick={() => handleAccessAirport(airport.code)}
           >
             <div className="flex justify-between items-start mb-4">
-              <div>
-                <Badge variant={airport.isCentral ? 'primary' : 'default'} className="mb-3">
-                  {airport.code}
-                </Badge>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant={airport.isCentral ? 'primary' : 'default'}>
+                    {airport.code}
+                  </Badge>
+                  <ExternalLink className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
                 <h3 className="text-xl font-bold text-slate-800 leading-tight">{airport.name}</h3>
                 <p className="text-slate-500 flex items-center mt-2 font-medium">
                   <MapPin className="w-4 h-4 mr-1.5 text-blue-500" />
                   {airport.city}, {airport.region}
                 </p>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                 <button 
-                  onClick={() => handleEdit(airport)}
+                  onClick={(e) => { e.stopPropagation(); handleEdit(airport); }}
                   className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Modifier"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button 
-                  onClick={() => handleDelete(airport.code)}
+                  onClick={(e) => { e.stopPropagation(); handleDelete(airport.code); }}
                   className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                  title="Supprimer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -206,6 +222,16 @@ const Airports = () => {
                 <span className="text-xs font-mono text-slate-500">
                   {airport.coordinates.latitude.toFixed(4)}, {airport.coordinates.longitude.toFixed(4)}
                 </span>
+              </div>
+            </div>
+
+            {/* Indicateur d'accès au dashboard */}
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500 group-hover:text-blue-600 transition-colors font-medium">
+                  Accéder au dashboard
+                </span>
+                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
               </div>
             </div>
           </div>

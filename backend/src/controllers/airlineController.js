@@ -71,7 +71,28 @@ exports.createAirline = async (req, res) => {
 
     // Vérifier si la compagnie existe déjà
     const existingAirline = await Airline.findOne({ code: code.toUpperCase() });
+    
     if (existingAirline) {
+      // Si elle existe mais est inactive (supprimée), on la réactive et on met à jour
+      if (!existingAirline.isActive) {
+        existingAirline.isActive = true;
+        existingAirline.name = name;
+        existingAirline.fullName = fullName || name;
+        existingAirline.logo = logo;
+        await existingAirline.save();
+
+        // Émettre un événement Socket.io
+        const io = req.app.get('io');
+        io.emit('airline:created', existingAirline);
+
+        return res.status(201).json({
+          success: true,
+          message: 'Compagnie réactivée avec succès',
+          data: existingAirline
+        });
+      }
+
+      // Si elle existe et est active, erreur
       return res.status(400).json({
         success: false,
         message: `Une compagnie avec le code ${code} existe déjà`

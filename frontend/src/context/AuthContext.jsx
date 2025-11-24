@@ -7,23 +7,40 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeAirportCode, setActiveAirportCode] = useState(null);
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       if (token) {
         try {
           const storedUser = authService.getCurrentUser();
           if (storedUser) {
             setUser(storedUser);
             setIsAuthenticated(true);
+            
+            // Restaurer le contexte d'aéroport pour superadmin si présent
+            if (storedUser.role === 'superadmin') {
+              const savedAirportCode = sessionStorage.getItem('activeAirportCode');
+              if (savedAirportCode) {
+                setActiveAirportCode(savedAirportCode);
+              }
+            }
           } else {
             // Si pas d'user stocké mais un token, on le récupère
             const response = await authService.getMe();
             if (response.success) {
               setUser(response.data.user);
               setIsAuthenticated(true);
-              localStorage.setItem('user', JSON.stringify(response.data.user));
+              sessionStorage.setItem('user', JSON.stringify(response.data.user));
+              
+              // Restaurer le contexte d'aéroport pour superadmin si présent
+              if (response.data.user.role === 'superadmin') {
+                const savedAirportCode = sessionStorage.getItem('activeAirportCode');
+                if (savedAirportCode) {
+                  setActiveAirportCode(savedAirportCode);
+                }
+              }
             }
           }
         } catch (error) {
@@ -57,9 +74,33 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     authService.logout();
+    sessionStorage.removeItem('activeAirportCode');
     setUser(null);
+    setActiveAirportCode(null);
     setIsAuthenticated(false);
     window.location.href = '/login';
+  };
+
+  // Définir l'aéroport actif pour un superadmin
+  const setActiveAirport = (airportCode) => {
+    if (user?.role === 'superadmin') {
+      setActiveAirportCode(airportCode);
+      sessionStorage.setItem('activeAirportCode', airportCode);
+    }
+  };
+
+  // Retourner à la vue superadmin globale
+  const clearActiveAirport = () => {
+    setActiveAirportCode(null);
+    sessionStorage.removeItem('activeAirportCode');
+  };
+
+  // Obtenir le code d'aéroport effectif (pour superadmin en contexte ou admin normal)
+  const getEffectiveAirportCode = () => {
+    if (user?.role === 'superadmin') {
+      return activeAirportCode;
+    }
+    return user?.airportCode || null;
   };
 
   const value = {
@@ -67,7 +108,11 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     login,
-    logout
+    logout,
+    activeAirportCode,
+    setActiveAirport,
+    clearActiveAirport,
+    getEffectiveAirportCode
   };
 
   return (

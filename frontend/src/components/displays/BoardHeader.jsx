@@ -19,29 +19,31 @@ const BoardHeader = ({ airportCode, airportName, type }) => {
     <div className="display-header">
       <div className="flex items-center justify-between px-10 py-6">
         {/* Logo et Nom */}
-        <div className="flex items-center space-x-5">
-          <div className="bg-gradient-to-br from-indigo-500 to-violet-500 p-2.5 rounded-xl shadow-lg shadow-indigo-500/30">
-            <Plane className="h-7 w-7 text-white" strokeWidth={2.5} />
+        <div className="flex items-center space-x-6">
+          <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 shadow-sm">
+            <Plane className="h-8 w-8 text-blue-600" strokeWidth={2} />
           </div>
           <div>
-            <h1 className="text-4xl font-bold text-slate-900 tracking-tight leading-none">
+            <h1 className="text-5xl font-black text-slate-900 tracking-tight leading-none font-mono">
               {airportCode}
             </h1>
-            <p className="text-sm text-slate-500 font-medium mt-0.5">
+            <p className="text-base text-slate-500 font-medium mt-1 tracking-widest uppercase">
               {airportName || 'Aéroport International'}
             </p>
           </div>
         </div>
 
         {/* Titre */}
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-700">
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <h2 className="text-3xl font-bold text-slate-800 tracking-[0.2em] uppercase border-b-2 border-blue-500/30 pb-1">
             {getTitle()}
           </h2>
         </div>
 
         {/* Horloge */}
-        <Clock />
+        <div className="text-right">
+          <Clock />
+        </div>
       </div>
     </div>
   );

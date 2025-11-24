@@ -26,6 +26,11 @@ const DepartureBoard = () => {
   // Écouter les mises à jour temps réel
   useEffect(() => {
     if (socket && airportCode) {
+      // Rejoindre la room de l'aéroport
+      if (socket.isConnected) {
+        socket.joinAirport(airportCode.toUpperCase());
+      }
+
       const handleFlightUpdate = (updatedFlight) => {
         if (updatedFlight.originAirportCode === airportCode.toUpperCase() && 
             updatedFlight.type === 'departure') {
@@ -58,6 +63,9 @@ const DepartureBoard = () => {
         socket.off('flight:updated', handleFlightUpdate);
         socket.off('flight:statusChanged', handleFlightUpdate);
         socket.off('flight:deleted', handleFlightDelete);
+        // Ne pas quitter la room ici si on navigue vers une autre page du même aéroport
+        // Mais pour l'instant c'est plus sûr de quitter
+        // socket.leaveAirport(airportCode.toUpperCase());
       };
     }
   }, [socket, airportCode]);
@@ -99,10 +107,10 @@ const DepartureBoard = () => {
       <div className="display-scroll-container">
         {/* En-têtes de colonnes */}
         <div className="display-table-header">
-          <div className="col-span-2">VOL</div>
+          <div className="col-span-3">VOL</div>
           <div className="col-span-3">DESTINATION</div>
-          <div className="col-span-2">HEURE PRÉVUE</div>
-          <div className="col-span-2">HEURE ESTIMÉE</div>
+          <div className="col-span-2">PROGRAMMÉ</div>
+          <div className="col-span-2">DÉPART PRÉVU</div>
           <div className="col-span-2">STATUT</div>
         </div>
 

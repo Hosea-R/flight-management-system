@@ -1,9 +1,9 @@
 import api from './api';
 
 const airlineService = {
-  // Récupérer toutes les compagnies
+  // Récupérer toutes les compagnies actives
   getAllAirlines: async () => {
-    const response = await api.get('/airlines');
+    const response = await api.get('/airlines?isActive=true');
     return response.data;
   },
 

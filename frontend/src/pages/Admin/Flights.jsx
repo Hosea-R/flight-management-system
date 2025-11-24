@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import flightService from '../../services/flightService';
 import { useAuth } from '../../context/AuthContext';
+import airportService from '../../services/airportService';
 import useSocket from '../../hooks/useSocket';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -14,7 +15,8 @@ import {
   Trash2,
   ChevronDown,
   X,
-  Loader2
+  Loader2,
+  ArrowLeft
 } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
@@ -23,11 +25,15 @@ import Modal from '../../components/common/Modal';
 import toast from 'react-hot-toast';
 
 const Flights = () => {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, getEffectiveAirportCode, activeAirportCode, clearActiveAirport } = useAuth();
   const { socket } = useSocket();
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [airportInfo, setAirportInfo] = useState(null);
+  
+  const effectiveAirportCode = getEffectiveAirportCode();
   
   // States pour les actions
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -38,7 +44,8 @@ const Flights = () => {
 
   useEffect(() => {
     fetchFlights();
-  }, [filter, user.airportCode]);
+    fetchAirportInfo();
+  }, [filter, effectiveAirportCode]);
 
   // Socket.io real-time updates
   useEffect(() => {
@@ -47,9 +54,16 @@ const Flights = () => {
         console.log('✈️ Vol créé:', data);
         const newFlight = data.flight || data;
         
-        if (newFlight.originAirportCode === user.airportCode || 
-            newFlight.destinationAirportCode === user.airportCode) {
-          
+        // Vérifier si ce vol concerne cet aéroport EN FONCTION DE SON TYPE
+        let concernsThisAirport = false;
+        
+        if (newFlight.type === 'departure' && newFlight.originAirportCode === effectiveAirportCode) {
+          concernsThisAirport = true; // C'est un départ de notre aéroport
+        } else if (newFlight.type === 'arrival' && newFlight.destinationAirportCode === effectiveAirportCode) {
+          concernsThisAirport = true; // C'est une arrivée vers notre aéroport
+        }
+        
+        if (concernsThisAirport) {
           setFlights(prevFlights => {
             const exists = prevFlights.find(f => f._id === newFlight._id);
             if (!exists && shouldShowFlight(newFlight)) {
@@ -100,7 +114,7 @@ const Flights = () => {
         socket.socket.off('flight:deleted', handleFlightDeleted);
       };
     }
-  }, [socket, user.airportCode, filter]);
+  }, [socket, effectiveAirportCode, filter]);
 
   const shouldShowFlight = (flight) => {
     if (filter === 'all') return true;
@@ -110,10 +124,12 @@ const Flights = () => {
   };
 
   const fetchFlights = async () => {
+    if (!effectiveAirportCode) return;
+    
     try {
       setLoading(true);
       const params = {
-        airportCode: user.airportCode,
+        airportCode: effectiveAirportCode,
         type: filter === 'all' ? undefined : filter
       };
       const data = await flightService.getAllFlights(params);
@@ -124,6 +140,23 @@ const Flights = () => {
       toast.error('Erreur lors du chargement des vols');
       setLoading(false);
     }
+  };
+
+  const fetchAirportInfo = async () => {
+    if (user?.role === 'superadmin' && activeAirportCode) {
+      try {
+        const response = await airportService.getAllAirports();
+        const airport = response.data.find(a => a.code === activeAirportCode);
+        setAirportInfo(airport);
+      } catch (error) {
+        console.error('Erreur chargement info aéroport:', error);
+      }
+    }
+  };
+
+  const handleReturnToSuperAdmin = () => {
+    clearActiveAirport();
+    navigate('/');
   };
 
   const getStatusVariant = (status) => {
@@ -261,13 +294,38 @@ const Flights = () => {
 
   return (
     <div className="space-y-8 page-transition">
+      {/* Bandeau de contexte pour SuperAdmin */}
+      {user?.role === 'superadmin' && activeAirportCode && (
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-lg">
+              <Plane className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium opacity-90">Mode Administrateur</p>
+              <p className="text-lg font-bold">
+                {airportInfo ? `${airportInfo.name} (${airportInfo.code})` : `Aéroport ${activeAirportCode}`}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={handleReturnToSuperAdmin}
+            icon={<ArrowLeft className="h-4 w-4" />}
+            className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+          >
+            Retour à la vue globale
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Vols</h1>
           <p className="text-slate-500 mt-1 flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            Aéroport de <span className="font-bold text-blue-600">{user.airportCode}</span>
+            Aéroport de <span className="font-bold text-blue-600">{effectiveAirportCode || user.airportCode}</span>
           </p>
         </div>
         <Link to="/flights/create">

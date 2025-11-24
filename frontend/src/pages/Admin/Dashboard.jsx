@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plane, AlertTriangle, PlaneTakeoff, PlaneLanding, Plus, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plane, AlertTriangle, PlaneTakeoff, PlaneLanding, Plus, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import useSocket from '../../hooks/useSocket';
 import statsService from '../../services/statsService';
+import airportService from '../../services/airportService';
 import StatCard from '../../components/stats/StatCard';
 import FlightChart from '../../components/stats/FlightChart';
 import RecentFlights from '../../components/stats/RecentFlights';
@@ -11,27 +13,73 @@ import Button from '../../components/common/Button';
 import Skeleton from '../../components/common/Skeleton';
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, getEffectiveAirportCode, activeAirportCode, clearActiveAirport } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [airportInfo, setAirportInfo] = useState(null);
+
+  const { socket } = useSocket();
+  const effectiveAirportCode = getEffectiveAirportCode();
 
   useEffect(() => {
-    if (user?.airportCode) {
+    if (effectiveAirportCode) {
       fetchStats();
+      fetchAirportInfo();
+      // Garder le polling comme fallback
       const interval = setInterval(fetchStats, 30000);
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [effectiveAirportCode]);
+
+  // Écouter les mises à jour temps réel
+  useEffect(() => {
+    if (socket && effectiveAirportCode) {
+      const handleUpdate = () => {
+        console.log('🔄 Mise à jour détectée, rechargement des stats...');
+        fetchStats();
+      };
+
+      socket.on('flight:created', handleUpdate);
+      socket.on('flight:updated', handleUpdate);
+      socket.on('flight:statusChanged', handleUpdate);
+      socket.on('flight:deleted', handleUpdate);
+
+      return () => {
+        socket.off('flight:created', handleUpdate);
+        socket.off('flight:updated', handleUpdate);
+        socket.off('flight:statusChanged', handleUpdate);
+        socket.off('flight:deleted', handleUpdate);
+      };
+    }
+  }, [socket, effectiveAirportCode]);
 
   const fetchStats = async () => {
     try {
-      const response = await statsService.getAirportStats(user.airportCode);
+      const response = await statsService.getAirportStats(effectiveAirportCode);
       setStats(response.data.data);
     } catch (error) {
       console.error('Erreur chargement stats:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchAirportInfo = async () => {
+    if (user?.role === 'superadmin' && activeAirportCode) {
+      try {
+        const response = await airportService.getAllAirports();
+        const airport = response.data.find(a => a.code === activeAirportCode);
+        setAirportInfo(airport);
+      } catch (error) {
+        console.error('Erreur chargement info aéroport:', error);
+      }
+    }
+  };
+
+  const handleReturnToSuperAdmin = () => {
+    clearActiveAirport();
+    navigate('/');
   };
 
   if (loading) {
@@ -53,10 +101,37 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-8 page-transition">
+      {/* Bandeau de contexte pour SuperAdmin */}
+      {user?.role === 'superadmin' && activeAirportCode && (
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-lg">
+              <Plane className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium opacity-90">Mode Administrateur</p>
+              <p className="text-lg font-bold">
+                {airportInfo ? `${airportInfo.name} (${airportInfo.code})` : `Aéroport ${activeAirportCode}`}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={handleReturnToSuperAdmin}
+            icon={<ArrowLeft className="h-4 w-4" />}
+            className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+          >
+            Retour à la vue globale
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard {user?.airportCode}</h1>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            Dashboard {effectiveAirportCode || user?.airportCode}
+          </h1>
           <p className="text-slate-500 mt-1">Vue d'ensemble de votre aéroport</p>
         </div>
         <Link to="/flights/create">

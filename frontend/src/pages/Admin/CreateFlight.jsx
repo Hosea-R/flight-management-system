@@ -10,7 +10,8 @@ import Button from '../../components/common/Button';
 const CreateFlight = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // Si id existe, on est en mode édition
-  const { user } = useAuth();
+  const { user, getEffectiveAirportCode } = useAuth();
+  const effectiveAirportCode = getEffectiveAirportCode();
   const isEditMode = !!id;
   const [airports, setAirports] = useState([]);
   const [airlines, setAirlines] = useState([]);
@@ -36,7 +37,7 @@ const CreateFlight = () => {
           airlineService.getAllAirlines()
         ]);
         // Filtrer pour ne pas montrer l'aéroport d'origine dans les destinations
-        const destinations = airportsData.data.filter(a => a.code !== user.airportCode);
+        const destinations = airportsData.data.filter(a => a.code !== effectiveAirportCode);
         setAirports(destinations);
         setAirlines(airlinesData.data);
         
@@ -64,7 +65,7 @@ const CreateFlight = () => {
       }
     };
     fetchData();
-  }, [user.airportCode, isEditMode, id]);
+  }, [effectiveAirportCode, isEditMode, id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -100,7 +101,7 @@ const CreateFlight = () => {
         // Mode création
         await flightService.createFlight({
           ...flightPayload,
-          originAirportCode: user.airportCode,
+          originAirportCode: effectiveAirportCode,
           type: 'departure'
         });
       }
@@ -127,7 +128,7 @@ const CreateFlight = () => {
             {isEditMode ? 'Modifier le Vol' : 'Nouveau Vol'}
           </h2>
           <p className="mt-2 text-slate-500 text-lg">
-            Départ de <span className="font-bold text-blue-600">{user.airportCode}</span>
+            Départ de <span className="font-bold text-blue-600">{effectiveAirportCode || user.airportCode}</span>
           </p>
         </div>
         <Button 

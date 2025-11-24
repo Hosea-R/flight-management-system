@@ -33,7 +33,12 @@ const LoadingFallback = () => (
 
 // Pages temporaires (placeholders)
 const DashboardByRole = () => {
-  const { user } = useAuth();
+  const { user, activeAirportCode } = useAuth();
+  // Si superadmin avec contexte d'aéroport actif, afficher le dashboard Admin
+  // Sinon, afficher selon le rôle
+  if (user?.role === 'superadmin' && activeAirportCode) {
+    return <AdminDashboard />;
+  }
   return user?.role === 'superadmin' ? <SuperAdminDashboard /> : <AdminDashboard />;
 };
 

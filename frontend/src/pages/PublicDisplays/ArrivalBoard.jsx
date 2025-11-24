@@ -25,6 +25,11 @@ const ArrivalBoard = () => {
   // Écouter les mises à jour temps réel
   useEffect(() => {
     if (socket && airportCode) {
+      // Rejoindre la room de l'aéroport
+      if (socket.isConnected) {
+        socket.joinAirport(airportCode.toUpperCase());
+      }
+
       const handleFlightUpdate = (updatedFlight) => {
         if (updatedFlight.destinationAirportCode === airportCode.toUpperCase() && 
             updatedFlight.type === 'arrival') {
@@ -98,10 +103,10 @@ const ArrivalBoard = () => {
       <div className="display-scroll-container">
         {/* En-têtes de colonnes */}
         <div className="display-table-header">
-          <div className="col-span-2">VOL</div>
-          <div className="col-span-3">ORIGINE</div>
-          <div className="col-span-2">HEURE PRÉVUE</div>
-          <div className="col-span-2">HEURE ESTIMÉE</div>
+          <div className="col-span-3">VOL</div>
+          <div className="col-span-3">PROVENANCE</div>
+          <div className="col-span-2">PROGRAMMÉ</div>
+          <div className="col-span-2">ARRIVÉE PRÉVUE</div>
           <div className="col-span-2">STATUT</div>
         </div>
 

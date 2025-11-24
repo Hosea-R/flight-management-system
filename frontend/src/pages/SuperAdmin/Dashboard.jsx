@@ -1,20 +1,50 @@
 import { useState, useEffect } from 'react';
-import { Plane, AlertTriangle, XCircle, Building2, ArrowUpRight } from 'lucide-react';
+import { Plane, AlertTriangle, XCircle, Building2, ArrowUpRight, ArrowDownRight, PlaneTakeoff, PlaneLanding } from 'lucide-react';
 import statsService from '../../services/statsService';
 import StatCard from '../../components/stats/StatCard';
 import FlightChart from '../../components/stats/FlightChart';
 import Card from '../../components/common/Card';
 import Skeleton from '../../components/common/Skeleton';
+import useSocket from '../../hooks/useSocket';
 
 const SuperAdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { socket } = useSocket();
 
   useEffect(() => {
     fetchStats();
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Écouter les mises à jour temps réel globales
+  useEffect(() => {
+    if (socket) {
+      const handleUpdate = () => {
+        console.log('🔄 Mise à jour globale détectée, rechargement des stats...');
+        fetchStats();
+      };
+
+      socket.on('flight:created:global', handleUpdate);
+      socket.on('flight:updated:global', handleUpdate);
+      socket.on('flight:statusChanged:global', handleUpdate);
+      socket.on('flight:deleted:global', handleUpdate);
+      socket.on('airport:created', handleUpdate); // Aussi pour les aéroports
+      socket.on('airport:updated', handleUpdate);
+      socket.on('airport:deleted', handleUpdate);
+
+      return () => {
+        socket.off('flight:created:global', handleUpdate);
+        socket.off('flight:updated:global', handleUpdate);
+        socket.off('flight:statusChanged:global', handleUpdate);
+        socket.off('flight:deleted:global', handleUpdate);
+        socket.off('airport:created', handleUpdate);
+        socket.off('airport:updated', handleUpdate);
+        socket.off('airport:deleted', handleUpdate);
+      };
+    }
+  }, [socket]);
 
   const fetchStats = async () => {
     try {
@@ -31,7 +61,7 @@ const SuperAdminDashboard = () => {
     return (
       <div className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <Skeleton.Card key={i} className="h-40" />
           ))}
         </div>
@@ -58,22 +88,31 @@ const SuperAdminDashboard = () => {
       </div>
 
       {/* Cartes de statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Vols Aujourd'hui"
           value={stats?.totalFlights || 0}
           icon={Plane}
           color="indigo"
-          change={12}
-          changeType="increase"
+          subtitle={`${stats?.totalDepartures || 0} départs • ${stats?.totalArrivals || 0} arrivées`}
+        />
+        <StatCard
+          title="Départs"
+          value={stats?.totalDepartures || 0}
+          icon={PlaneTakeoff}
+          color="blue"
+        />
+        <StatCard
+          title="Arrivées"
+          value={stats?.totalArrivals || 0}
+          icon={PlaneLanding}
+          color="purple"
         />
         <StatCard
           title="Vols Retardés"
           value={stats?.delayed || 0}
           icon={AlertTriangle}
           color="orange"
-          change={-5}
-          changeType="decrease"
         />
         <StatCard
           title="Vols Annulés"

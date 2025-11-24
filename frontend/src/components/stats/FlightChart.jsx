@@ -10,26 +10,34 @@ const FlightChart = ({ data, type = 'line' }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+    <div className="w-full h-full min-h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
           <XAxis 
             dataKey="date" 
-            stroke="#6b7280"
-            style={{ fontSize: '12px' }}
+            stroke="#94a3b8"
+            style={{ fontSize: '12px', fontWeight: 500 }}
+            tickLine={false}
+            axisLine={false}
+            dy={10}
           />
           <YAxis 
-            stroke="#6b7280"
-            style={{ fontSize: '12px' }}
+            stroke="#94a3b8"
+            style={{ fontSize: '12px', fontWeight: 500 }}
+            tickLine={false}
+            axisLine={false}
+            dx={-10}
           />
           <Tooltip 
             contentStyle={{ 
               backgroundColor: '#fff', 
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              border: 'none',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+              padding: '12px'
             }}
+            cursor={{ stroke: '#e2e8f0', strokeWidth: 2 }}
           />
           <Legend 
             wrapperStyle={{ paddingTop: '20px' }}
@@ -38,19 +46,20 @@ const FlightChart = ({ data, type = 'line' }) => {
           <Line 
             type="monotone" 
             dataKey="flights"
-            stroke="#3b82f6" 
-            strokeWidth={2}
-            dot={{ fill: '#3b82f6', r: 4 }}
-            activeDot={{ r: 6 }}
-            name="Vols"
+            stroke="#6366f1" 
+            strokeWidth={3}
+            dot={{ fill: '#6366f1', r: 4, strokeWidth: 2, stroke: '#fff' }}
+            activeDot={{ r: 6, strokeWidth: 0 }}
+            name="Total"
           />
           {data[0]?.departures !== undefined && (
             <Line 
               type="monotone" 
               dataKey="departures"
-              stroke="#10b981" 
-              strokeWidth={2}
-              dot={{ fill: '#10b981', r: 4 }}
+              stroke="#3b82f6" 
+              strokeWidth={3}
+              dot={{ fill: '#3b82f6', r: 4, strokeWidth: 2, stroke: '#fff' }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
               name="Départs"
             />
           )}
@@ -58,9 +67,10 @@ const FlightChart = ({ data, type = 'line' }) => {
             <Line 
               type="monotone" 
               dataKey="arrivals"
-              stroke="#f59e0b" 
-              strokeWidth={2}
-              dot={{ fill: '#f59e0b', r: 4 }}
+              stroke="#a855f7" 
+              strokeWidth={3}
+              dot={{ fill: '#a855f7', r: 4, strokeWidth: 2, stroke: '#fff' }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
               name="Arrivées"
             />
           )}

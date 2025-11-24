@@ -44,7 +44,8 @@ const Airlines = () => {
     e.preventDefault();
     try {
       if (currentAirline) {
-        await airlineService.updateAirline(currentAirline._id, formData);
+        // Le backend attend le code IATA, pas l'ID MongoDB
+        await airlineService.updateAirline(currentAirline.code, formData);
       } else {
         await airlineService.createAirline(formData);
       }
@@ -67,10 +68,11 @@ const Airlines = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette compagnie ?')) {
+  const handleDelete = async (airline) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la compagnie ${airline.name} ?`)) {
       try {
-        await airlineService.deleteAirline(id);
+        // Le backend attend le code IATA
+        await airlineService.deleteAirline(airline.code);
         fetchAirlines();
       } catch (err) {
         setError('Erreur lors de la suppression');
@@ -156,7 +158,7 @@ const Airlines = () => {
                       <Edit className="w-4 h-4" />
                     </button>
                     <button 
-                      onClick={() => handleDelete(airline._id)}
+                      onClick={() => handleDelete(airline)}
                       className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />

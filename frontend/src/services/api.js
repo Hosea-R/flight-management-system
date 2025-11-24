@@ -14,7 +14,7 @@ const api = axios.create({
 // Intercepteur pour ajouter le token à chaque requête
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -47,8 +47,9 @@ api.interceptors.response.use(
     switch (status) {
       case 401:
         // Token expiré ou invalide
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('activeAirportCode');
         toast.error('Session expirée. Veuillez vous reconnecter.');
         if (window.location.pathname !== '/login') {
           setTimeout(() => {

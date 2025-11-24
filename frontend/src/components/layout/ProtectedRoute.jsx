@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const ProtectedRoute = ({ children, roles = [] }) => {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, activeAirportCode } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -19,9 +19,16 @@ const ProtectedRoute = ({ children, roles = [] }) => {
   }
 
   // Vérification des rôles si spécifiés
-  if (roles.length > 0 && !roles.includes(user.role)) {
-    // Rediriger vers dashboard par défaut ou page non autorisé
-    return <Navigate to="/" replace />;
+  if (roles.length > 0) {
+    // SuperAdmin a TOUJOURS accès aux routes Admin (hiérarchie de permissions)
+    const isSuperAdmin = user.role === 'superadmin';
+    const hasAdminAccess = isSuperAdmin && roles.includes('admin');
+    const hasDirectAccess = roles.includes(user.role);
+    
+    if (!hasDirectAccess && !hasAdminAccess) {
+      // Rediriger vers dashboard par défaut si pas autorisé
+      return <Navigate to="/" replace />;
+    }
   }
 
   return children;
