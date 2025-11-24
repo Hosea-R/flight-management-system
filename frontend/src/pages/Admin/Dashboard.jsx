@@ -11,6 +11,7 @@ import RecentFlights from '../../components/stats/RecentFlights';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Skeleton from '../../components/common/Skeleton';
+import { formatAirportName } from '../../utils/formatters';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -66,11 +67,11 @@ const AdminDashboard = () => {
   };
 
   const fetchAirportInfo = async () => {
-    if (user?.role === 'superadmin' && activeAirportCode) {
+    if (effectiveAirportCode) {
       try {
-        const response = await airportService.getAllAirports();
-        const airport = response.data.find(a => a.code === activeAirportCode);
-        setAirportInfo(airport);
+        // Utiliser getAirportByCode pour être plus efficace et supporter tous les rôles
+        const response = await airportService.getAirportByCode(effectiveAirportCode);
+        setAirportInfo(response.data);
       } catch (error) {
         console.error('Erreur chargement info aéroport:', error);
       }
@@ -111,7 +112,7 @@ const AdminDashboard = () => {
             <div>
               <p className="text-sm font-medium opacity-90">Mode Administrateur</p>
               <p className="text-lg font-bold">
-                {airportInfo ? `${airportInfo.name} (${airportInfo.code})` : `Aéroport ${activeAirportCode}`}
+                {airportInfo ? `${formatAirportName(airportInfo)} (${airportInfo.code})` : `Aéroport ${activeAirportCode}`}
               </p>
             </div>
           </div>
@@ -130,7 +131,7 @@ const AdminDashboard = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            Dashboard {effectiveAirportCode || user?.airportCode}
+            {airportInfo ? formatAirportName(airportInfo) : `Dashboard ${effectiveAirportCode || user?.airportCode}`}
           </h1>
           <p className="text-slate-500 mt-1">Vue d'ensemble de votre aéroport</p>
         </div>

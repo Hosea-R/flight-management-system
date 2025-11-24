@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import useSocket from '../../hooks/useSocket';
+import useFlightFiltering from '../../hooks/useFlightFiltering';
 import BoardHeader from '../../components/displays/BoardHeader';
 import FlightBoardRow from '../../components/displays/FlightBoardRow';
 import { Plane } from 'lucide-react';
+import { formatAirportName } from '../../utils/formatters';
 import '../../styles/display.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -15,6 +17,9 @@ const ArrivalBoard = () => {
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [airportName, setAirportName] = useState('');
+
+  // Appliquer le filtrage et le tri
+  const visibleFlights = useFlightFiltering(flights);
 
   useEffect(() => {
     fetchArrivals();
@@ -72,6 +77,11 @@ const ArrivalBoard = () => {
         `${API_URL}/public/flights/${airportCode.toUpperCase()}/arrivals`
       );
       setFlights(response.data.data);
+      
+      if (response.data.airport) {
+        setAirportName(formatAirportName(response.data.airport));
+      }
+
       setLoading(false);
     } catch (error) {
       console.error('Erreur chargement arrivées:', error);
@@ -111,14 +121,14 @@ const ArrivalBoard = () => {
         </div>
 
         {/* Lignes de vols */}
-        {flights.length === 0 ? (
+        {visibleFlights.length === 0 ? (
           <div className="display-empty">
             <Plane className="h-24 w-24 mb-4 opacity-50" />
             <p className="text-2xl">Aucune arrivée prévue pour aujourd'hui</p>
           </div>
         ) : (
           <div>
-            {flights.map((flight, index) => (
+            {visibleFlights.map((flight, index) => (
               <FlightBoardRow
                 key={flight._id}
                 flight={flight}
@@ -134,3 +144,4 @@ const ArrivalBoard = () => {
 };
 
 export default ArrivalBoard;
+

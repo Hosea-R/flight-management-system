@@ -246,6 +246,32 @@ cron.schedule('0 2 * * *', async () => {
 
 logger.info('⏰ CRON job configuré: nettoyage quotidien des vols à 2h00');
 
+// Configuration du CRON job pour la mise à jour automatique des statuts
+// S'exécute toutes les 5 minutes
+const FlightStatusService = require('./services/flightStatusService');
+
+cron.schedule('*/5 * * * *', async () => {
+  logger.info('🔄 CRON: Mise à jour automatique des statuts de vols...');
+  try {
+    const result = await FlightStatusService.updateFlightStatuses(io);
+    logger.info('✅ CRON: Statuts mis à jour', {
+      totalFlights: result.totalFlights,
+      updatedCount: result.updatedCount,
+      errors: result.errors
+    });
+  } catch (error) {
+    logger.error('❌ CRON: Erreur lors de la mise à jour des statuts', {
+      error: error.message,
+      stack: error.stack
+    });
+  }
+}, {
+  timezone: "Indian/Antananarivo"
+});
+
+logger.info('⏰ CRON job configuré: mise à jour des statuts toutes les 5 minutes');
+
+
 // Gestion des erreurs non capturées
 process.on('unhandledRejection', (err) => {
   logger.error('UNHANDLED REJECTION - Arrêt du serveur', {

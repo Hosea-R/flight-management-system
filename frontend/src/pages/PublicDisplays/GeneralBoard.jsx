@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import useSocket from '../../hooks/useSocket';
+import useFlightFiltering from '../../hooks/useFlightFiltering';
 import BoardHeader from '../../components/displays/BoardHeader';
 import FlightBoardRow from '../../components/displays/FlightBoardRow';
-import { Plane } from 'lucide-react';
+import {  Plane } from 'lucide-react';
 import Loading from '../../components/common/Loading';
+import { formatAirportName } from '../../utils/formatters';
 import '../../styles/display.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -18,13 +20,16 @@ const GeneralBoard = () => {
   const [loading, setLoading] = useState(true);
   const [airportName, setAirportName] = useState('');
 
+  // Appliquer le filtrage et le tri
+  const visibleDepartures = useFlightFiltering(departures);
+  const visibleArrivals = useFlightFiltering(arrivals);
+
   useEffect(() => {
     fetchAllFlights();
     const interval = setInterval(fetchAllFlights, 30000);
     return () => clearInterval(interval);
   }, [airportCode]);
 
-  // Écouter les mises à jour temps réel
   // Écouter les mises à jour temps réel
   useEffect(() => {
     if (socket && airportCode) {
@@ -88,31 +93,17 @@ const GeneralBoard = () => {
       );
       setDepartures(response.data.data.departures);
       setArrivals(response.data.data.arrivals);
+      
+      if (response.data.airport) {
+        setAirportName(formatAirportName(response.data.airport));
+      }
+      
       setLoading(false);
     } catch (error) {
       console.error('Erreur chargement vols:', error);
       setLoading(false);
     }
   };
-
-  // Fusionner et trier tous les vols par ordre chronologique
-  const allFlights = React.useMemo(() => {
-    const combined = [
-      ...departures.map(f => ({ ...f, displayType: 'departure' })),
-      ...arrivals.map(f => ({ ...f, displayType: 'arrival' }))
-    ];
-    
-    // Trier par heure (départ ou arrivée selon le type)
-    return combined.sort((a, b) => {
-      const timeA = a.displayType === 'departure' 
-        ? new Date(a.scheduledDeparture) 
-        : new Date(a.scheduledArrival);
-      const timeB = b.displayType === 'departure'
-        ? new Date(b.scheduledDeparture)
-        : new Date(b.scheduledArrival);
-      return timeA - timeB;
-    });
-  }, [departures, arrivals]);
 
   if (loading) {
     return <Loading fullScreen text="Chargement des vols..." />;
@@ -136,24 +127,55 @@ const GeneralBoard = () => {
           <div className="col-span-2">STATUT</div>
         </div>
 
-        {/* Tous les vols mélangés */}
-        {allFlights.length === 0 ? (
-          <div className="display-empty">
-            <Plane className="h-24 w-24 mb-4 opacity-50" />
-            <p className="text-2xl">Aucun vol prévu pour aujourd'hui</p>
+        {/* Départs */}
+        <div>
+          <div className="display-section-header">
+            <Plane className="h-6 w-6" />
+            <span>Départs</span>
           </div>
-        ) : (
-          <div>
-            {allFlights.slice(0, 20).map((flight, index) => (
-              <FlightBoardRow
-                key={flight._id}
-                flight={flight}
-                type={flight.displayType}
-                index={index}
-              />
-            ))}
+
+          {visibleDepartures.length === 0 ? (
+            <div className="display-empty py-8">
+              <p className="text-lg">Aucun départ</p>
+            </div>
+          ) : (
+            <div>
+              {visibleDepartures.map((flight, index) => (
+                <FlightBoardRow
+                  key={flight._id}
+                  flight={flight}
+                  type="departure"
+                  index={index}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Arrivées */}
+        <div>
+          <div className="display-section-header">
+            <Plane className="h-6 w-6 transform rotate-180" />
+            <span>Arrivées</span>
           </div>
-        )}
+
+          {visibleArrivals.length === 0 ? (
+            <div className="display-empty py-8">
+              <p className="text-lg">Aucune arrivée</p>
+            </div>
+          ) : (
+            <div>
+              {visibleArrivals.map((flight, index) => (
+                <FlightBoardRow
+                  key={flight._id}
+                  flight={flight}
+                  type="arrival"
+                  index={index}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

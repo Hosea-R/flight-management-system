@@ -79,12 +79,11 @@ exports.createAdmin = async (req, res) => {
 
     // Générer un mot de passe temporaire
     const temporaryPassword = generateTemporaryPassword();
-    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
-    // Créer l'admin
+    // Créer l'admin (le middleware pre-save du modèle hashera automatiquement le password)
     const user = await User.create({
       email,
-      password: hashedPassword,
+      password: temporaryPassword,
       firstName,
       lastName,
       role: 'admin',

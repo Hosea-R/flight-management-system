@@ -3,8 +3,8 @@ import { Plane, Monitor, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const PublicDisplays = () => {
-  const { user } = useAuth();
-  const airportCode = user?.airportCode || 'TNR';
+  const { getEffectiveAirportCode } = useAuth();
+  const airportCode = getEffectiveAirportCode() || 'TNR';
 
   const displays = [
     {

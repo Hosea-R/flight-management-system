@@ -20,6 +20,10 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
     return isArrival ? flight.estimatedArrival : flight.estimatedDeparture;
   };
 
+  const getActualTime = () => {
+    return isArrival ? flight.actualArrival : flight.actualDeparture;
+  };
+
   const location = isArrival ? flight.originAirportCode : flight.destinationAirportCode;
   const locationCity = isArrival 
     ? (flight.originAirport?.city || flight.originAirportCode) 
@@ -27,6 +31,18 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
   
   const isDelayed = flight.status === 'delayed';
   const isCancelled = flight.status === 'cancelled';
+  const isBoarding = flight.status === 'boarding';
+  const isDeparted = flight.status === 'departed';
+  const isLanded = flight.status === 'landed';
+
+  // Couleur de l'heure estimée selon le statut
+  const getEstimatedTimeColor = () => {
+    if (isCancelled) return 'text-rose-600 line-through decoration-2';
+    if (isDelayed) return 'text-amber-600';
+    if (isBoarding) return 'text-green-600 animate-pulse';
+    if (isDeparted || isLanded) return 'text-slate-500';
+    return 'text-slate-900';
+  };
 
   return (
     <div
@@ -86,25 +102,22 @@ const FlightBoardRow = ({ flight, type = 'departure', index }) => {
           </div>
         </div>
 
-        {/* 3. Heure Prévue */}
+        {/* 3. Heure Programmée */}
         <div className="text-time text-slate-500">
           {format(new Date(getScheduledTime()), 'HH:mm')}
         </div>
 
         {/* 4. Heure Estimée/Réelle */}
-        <div className={`text-time font-bold ${
-          isDelayed ? 'text-amber-600' : 
-          isCancelled ? 'text-rose-600 line-through decoration-2' : 
-          'text-slate-900'
-        }`}>
+        <div className={`text-time font-bold ${getEstimatedTimeColor()}`}>
           {isCancelled ? '--:--' : 
-           getEstimatedTime() ? format(new Date(getTime()), 'HH:mm') : 
+           getActualTime() ? format(new Date(getActualTime()), 'HH:mm') :
+           getEstimatedTime() ? format(new Date(getEstimatedTime()), 'HH:mm') : 
            format(new Date(getScheduledTime()), 'HH:mm')}
         </div>
 
         {/* 5. Statut */}
         <div>
-          <StatusIndicator status={flight.status} />
+          <StatusIndicator status={flight.status} flight={flight} />
         </div>
       </div>
     </div>
