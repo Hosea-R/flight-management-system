@@ -131,7 +131,7 @@ const Login = () => {
 
           <div className="mt-10 text-center">
             <p className="text-xs text-slate-400 font-medium">
-              © 2024 ADEMA • Secure Access
+              © 2025 ADEMA • Secure Access
             </p>
           </div>
         </div>
