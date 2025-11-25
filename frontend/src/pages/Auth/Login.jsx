@@ -35,7 +35,7 @@ const Login = () => {
         
         navigate(redirectPath, { replace: true });
       } else {
-        setError(result.error);
+        setError(result.message || 'Erreur de connexion');
       }
     } catch (err) {
       setError('Une erreur est survenue lors de la connexion');

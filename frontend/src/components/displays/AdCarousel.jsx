@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import advertisementService from '../../services/advertisementService';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const AdCarousel = ({ className = '' }) => {
+const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
   const { activeAirport } = useAuth();
   const [advertisements, setAdvertisements] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -12,7 +12,7 @@ const AdCarousel = ({ className = '' }) => {
 
   useEffect(() => {
     fetchAdvertisements();
-  }, [activeAirport]);
+  }, [activeAirport, displayMode]);
 
   useEffect(() => {
     if (advertisements.length === 0) return;
@@ -41,11 +41,19 @@ const AdCarousel = ({ className = '' }) => {
 
   const fetchAdvertisements = async () => {
     try {
-      const response = await advertisementService.getActiveAdvertisements(activeAirport);
-      setAdvertisements(response.data);
+      const ads = await advertisementService.getActiveAdvertisements(activeAirport);
+      
+      // Filtrer les pubs selon le displayMode
+      const filteredAds = ads.filter(ad => 
+        (ad.displayMode || 'half-screen') === displayMode
+      );
+      
+      // advertisementService retourne maintenant directement le tableau
+      setAdvertisements(filteredAds || []);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching advertisements:', error);
+      setAdvertisements([]);
       setLoading(false);
     }
   };
@@ -63,9 +71,14 @@ const AdCarousel = ({ className = '' }) => {
   }
 
   const currentAd = advertisements[currentIndex];
+  
+  // Classes CSS adaptatives selon le mode
+  const containerClasses = displayMode === 'full-screen'
+    ? `fixed inset-0 z-50 ${className}` // Full-screen occupe tout l'écran
+    : `relative bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg ${className}`; // Half-screen
 
   return (
-    <div className={`relative bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg ${className}`}>
+    <div className={containerClasses}>
       {/* Contenu de la publicité */}
       <div className="relative h-full">
         {currentAd.type === 'image' && (
@@ -92,7 +105,9 @@ const AdCarousel = ({ className = '' }) => {
         {currentAd.type === 'text' && (
           <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-8">
             <div className="text-center">
-              <p className="text-white text-2xl md:text-4xl font-bold leading-relaxed animate-pulse">
+              <p className={`text-white font-bold leading-relaxed animate-pulse ${
+                displayMode === 'full-screen' ? 'text-5xl md:text-7xl' : 'text-2xl md:text-4xl'
+              }`}>
                 {currentAd.textContent}
               </p>
             </div>
@@ -100,18 +115,24 @@ const AdCarousel = ({ className = '' }) => {
         )}
 
         {/* Overlay avec titre et contrôles */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+        <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent ${
+          displayMode === 'full-screen' ? 'p-8' : 'p-4'
+        }`}>
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h3 className="text-white font-bold text-lg">{currentAd.title}</h3>
-              {advertisements.length > 1 && ( <div className="flex items-center gap-2 mt-2">
+              <h3 className={`text-white font-bold ${
+                displayMode === 'full-screen' ? 'text-3xl' : 'text-lg'
+              }`}>{currentAd.title}</h3>
+              {advertisements.length > 1 && ( <div className={`flex items-center gap-2 ${
+                displayMode === 'full-screen' ? 'mt-4' : 'mt-2'
+              }`}>
                 {advertisements.map((_, index) => (
                   <div
                     key={index}
                     className={`h-1 rounded-full transition-all ${
                       index === currentIndex
-                        ? 'w-8 bg-white'
-                        : 'w-4 bg-white/40'
+                        ? displayMode === 'full-screen' ? 'w-12 bg-white' : 'w-8 bg-white'
+                        : displayMode === 'full-screen' ? 'w-6 bg-white/40' : 'w-4 bg-white/40'
                     }`}
                   />
                 ))}
@@ -123,24 +144,30 @@ const AdCarousel = ({ className = '' }) => {
               <div className="flex gap-2">
                 <button
                   onClick={prevSlide}
-                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors"
+                  className={`bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors ${
+                    displayMode === 'full-screen' ? 'p-4' : 'p-2'
+                  }`}
                   title="Précédent"
                 >
-                  <ChevronLeft className="w-5 h-5 text-white" />
+                  <ChevronLeft className={displayMode === 'full-screen' ? 'w-8 h-8 text-white' : 'w-5 h-5 text-white'} />
                 </button>
                 <button
                   onClick={nextSlide}
-                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors"
+                  className={`bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors ${
+                    displayMode === 'full-screen' ? 'p-4' : 'p-2'
+                  }`}
                   title="Suivant"
                 >
-                  <ChevronRight className="w-5 h-5 text-white" />
+                  <ChevronRight className={displayMode === 'full-screen' ? 'w-8 h-8 text-white' : 'w-5 h-5 text-white'} />
                 </button>
               </div>
             )}
           </div>
 
           {/* Progress bar */}
-          <div className="mt-3 h-1 bg-white/20 rounded-full overflow-hidden">
+          <div className={`bg-white/20 rounded-full overflow-hidden ${
+            displayMode === 'full-screen' ? 'mt-4 h-2' : 'mt-3 h-1'
+          }`}>
             <div
               className="h-full bg-white transition-all duration-1000 ease-linear"
               style={{ width: `${((currentAd.duration - timeLeft) / currentAd.duration) * 100}%` }}

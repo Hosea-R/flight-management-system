@@ -1,5 +1,5 @@
 const Advertisement = require('../models/Advertisement');
-const { uploadImage, uploadVideo, deleteMedia } = require('../services/cloudinaryService');
+const { uploadImage, uploadVideo, uploadPDF, deleteMedia } = require('../services/cloudinaryService');
 const logger = require('../config/logger');
 
 /**
@@ -107,7 +107,11 @@ exports.getAdvertisementById = async (req, res) => {
  */
 exports.createAdvertisement = async (req, res) => {
   try {
-    const { type, title, textContent, duration, priority, startDate, endDate, airports, showOnAllAirports } = req.body;
+    const { 
+      type, title, textContent, duration, priority, startDate, endDate, 
+      airports, showOnAllAirports, isActive, displayMode,
+      client, contract, alerts
+    } = req.body;
     
     let mediaData = {};
     
@@ -126,6 +130,11 @@ exports.createAdvertisement = async (req, res) => {
       };
     }
     
+    // Parser les données JSON si elles sont strings
+    const parsedClient = client ? (typeof client === 'string' ? JSON.parse(client) : client) : undefined;
+    const parsedContract = contract ? (typeof contract === 'string' ? JSON.parse(contract) : contract) : undefined;
+    const parsedAlerts = alerts ? (typeof alerts === 'string' ? JSON.parse(alerts) : alerts) : undefined;
+    
     // Créer la publicité
     const advertisement = new Advertisement({
       type,
@@ -138,6 +147,11 @@ exports.createAdvertisement = async (req, res) => {
       endDate: endDate || null,
       airports: airports ? JSON.parse(airports) : [],
       showOnAllAirports: showOnAllAirports === 'true',
+      isActive: isActive !== undefined ? isActive === 'true' : true,
+      displayMode: displayMode || 'half-screen',
+      client: parsedClient,
+      contract: parsedContract,
+      alerts: parsedAlerts,
       createdBy: req.user.id
     });
     
@@ -171,7 +185,11 @@ exports.createAdvertisement = async (req, res) => {
 exports.updateAdvertisement = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, textContent, duration, priority, startDate, endDate, airports, showOnAllAirports, isActive } = req.body;
+    const { 
+      title, textContent, duration, priority, startDate, endDate, 
+      airports, showOnAllAirports, isActive, displayMode,
+      client, contract, alerts
+    } = req.body;
     
     const advertisement = await Advertisement.findById(id);
     
@@ -211,6 +229,27 @@ exports.updateAdvertisement = async (req, res) => {
     if (airports) advertisement.airports = JSON.parse(airports);
     if (showOnAllAirports !== undefined) advertisement.showOnAllAirports = showOnAllAirports === 'true';
     if (isActive !== undefined) advertisement.isActive = isActive === 'true';
+    if (displayMode) advertisement.displayMode = displayMode;
+    
+    // Mettre à jour client, contract, alerts si fournis
+    if (client) {
+      const parsedClient = typeof client === 'string' ? JSON.parse(client) : client;
+      advertisement.client = parsedClient;
+    }
+    
+    if (contract) {
+      const parsedContract = typeof contract === 'string' ? JSON.parse(contract) : contract;
+      // Fusionner avec le contrat existant pour ne pas perdre les attachments
+      advertisement.contract = {
+        ...advertisement.contract,
+        ...parsedContract
+      };
+    }
+    
+    if (alerts) {
+      const parsedAlerts = typeof alerts === 'string' ? JSON.parse(alerts) : alerts;
+      advertisement.alerts = parsedAlerts;
+    }
     
     await advertisement.save();
     
@@ -275,18 +314,226 @@ exports.incrementViewCount = async (req, res) => {
   try {
     const { id } = req.params;
     
-    await Advertisement.findByIdAndUpdate(id, {
-      $inc: { viewCount: 1 }
-    });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Chercher si une entrée existe pour aujourd'hui
+    const advertisement = await Advertisement.findById(id);
+    
+    if (!advertisement) {
+      return res.status(404).json({ success: false, message: 'Publicité non trouvée' });
+    }
+    
+    // Incrémenter le compteur total
+    advertisement.viewCount += 1;
+    
+    // Gestion de l'historique
+    const historyIndex = advertisement.viewHistory.findIndex(h => 
+      new Date(h.date).getTime() === today.getTime()
+    );
+    
+    if (historyIndex >= 0) {
+      advertisement.viewHistory[historyIndex].count += 1;
+    } else {
+      advertisement.viewHistory.push({
+        date: today,
+        count: 1
+      });
+    }
+    
+    await advertisement.save();
     
     res.json({
-      success: true
+      success: true,
+      data: { viewCount: advertisement.viewCount }
     });
   } catch (error) {
     logger.error('Error incrementing view count:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la mise à jour du compteur'
+      message: 'Erreur lors de l\'incrémentation des vues'
+    });
+  }
+};
+/**
+ * Récupérer les publicités avec alertes
+ */
+exports.getAdvertisementAlerts = async (req, res) => {
+  try {
+    const now = new Date();
+    const advertisements = await Advertisement.find({
+      isActive: true
+    }).populate('createdBy', 'username email');
+
+    const alerts = {
+      expiring: [],
+      quotaReached: [],
+      expired: []
+    };
+
+    advertisements.forEach(ad => {
+      // Vérifier expiration proche
+      if (ad.alerts?.expirationWarning?.enabled) {
+        const daysRemaining = ad.getDaysRemaining();
+        const threshold = ad.alerts.expirationWarning.daysBeforeExpiry || 30;
+        
+        if (daysRemaining !== null && daysRemaining <= threshold && daysRemaining > 0) {
+          alerts.expiring.push({
+            ...ad.toObject(),
+            daysRemaining,
+            alertType: 'expiration'
+          });
+        }
+      }
+
+      // Vérifier quota
+      if (ad.alerts?.quotaWarning?.enabled && ad.contract?.maxViews) {
+        const percentage = (ad.viewCount / ad.contract.maxViews) * 100;
+        const threshold = ad.alerts.quotaWarning.threshold || 90;
+        
+        if (percentage >= threshold) {
+          alerts.quotaReached.push({
+            ...ad.toObject(),
+            quotaPercentage: Math.round(percentage),
+            alertType: 'quota'
+          });
+        }
+      }
+
+      // Vérifier si expiré
+      if (ad.endDate && ad.endDate < now) {
+        alerts.expired.push({
+          ...ad.toObject(),
+          alertType: 'expired'
+        });
+      }
+    });
+
+    const totalAlerts = alerts.expiring.length + alerts.quotaReached.length + alerts.expired.length;
+
+    res.json({
+      success: true,
+      data: alerts,
+      count: totalAlerts
+    });
+  } catch (error) {
+    logger.error('Error fetching advertisement alerts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des alertes'
+    });
+  }
+};
+
+/**
+ * Upload un PDF de contrat
+ */
+exports.uploadContractPDF = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body; // Nom du document
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aucun fichier fourni'
+      });
+    }
+    
+    const advertisement = await Advertisement.findById(id);
+    
+    if (!advertisement) {
+      return res.status(404).json({
+        success: false,
+        message: 'Publicité non trouvée'
+      });
+    }
+    
+    // Upload du PDF vers Cloudinary
+    const uploadResult = await uploadPDF(req.file.path);
+    
+    // Ajouter l'attachment au contrat
+    if (!advertisement.contract) {
+      advertisement.contract = {};
+    }
+    if (!advertisement.contract.attachments) {
+      advertisement.contract.attachments = [];
+    }
+    
+    advertisement.contract.attachments.push({
+      name: name || req.file.originalname,
+      url: uploadResult.url,
+      cloudinaryId: uploadResult.publicId,
+      uploadedAt: new Date()
+    });
+    
+    await advertisement.save();
+    
+    logger.info(`PDF uploaded for advertisement ${id}`);
+    
+    res.json({
+      success: true,
+      data: advertisement.contract.attachments,
+      message: 'PDF ajouté avec succès'
+    });
+  } catch (error) {
+    logger.error('Error uploading PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Erreur lors de l\'upload du PDF'
+    });
+  }
+};
+
+/**
+ * Supprimer un PDF de contrat
+ */
+exports.deleteContractPDF = async (req, res) => {
+  try {
+    const { id, attachmentId } = req.params;
+    
+    const advertisement = await Advertisement.findById(id);
+    
+    if (!advertisement) {
+      return res.status(404).json({
+        success: false,
+        message: 'Publicité non trouvée'
+      });
+    }
+    
+    // Trouver l'attachment
+    const attachment = advertisement.contract?.attachments?.find(
+      att => att._id.toString() === attachmentId
+    );
+    
+    if (!attachment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pièce jointe non trouvée'
+      });
+    }
+    
+    // Supprimer de Cloudinary
+    await deleteMedia(attachment.cloudinaryId, 'raw');
+    
+    // Retirer du tableau
+    advertisement.contract.attachments = advertisement.contract.attachments.filter(
+      att => att._id.toString() !== attachmentId
+    );
+    
+    await advertisement.save();
+    
+    logger.info(`PDF deleted from advertisement ${id}`);
+    
+    res.json({
+      success: true,
+      message: 'PDF supprimé avec succès'
+    });
+  } catch (error) {
+    logger.error('Error deleting PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Erreur lors de la suppression du PDF'
     });
   }
 };

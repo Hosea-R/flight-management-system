@@ -26,6 +26,7 @@ const AdManagerLayout = lazy(() => import('./layouts/AdManagerLayout'));
 const AdManagerDashboard = lazy(() => import('./pages/AdManager/Dashboard'));
 const AdManagerAdvertisements = lazy(() => import('./pages/AdManager/Advertisements'));
 const AdManagerReports = lazy(() => import('./pages/AdManager/Reports'));
+const AdManagerAlerts = lazy(() => import('./pages/AdManager/Alerts'));
 
 // Composant de chargement
 const LoadingFallback = () => (
@@ -128,6 +129,7 @@ function App() {
                   <Route index element={<AdManagerDashboard />} />
                   <Route path="advertisements" element={<AdManagerAdvertisements />} />
                   <Route path="reports" element={<AdManagerReports />} />
+                  <Route path="alerts" element={<AdManagerAlerts />} />
                 </Route>
 
                 {/* 404 */}

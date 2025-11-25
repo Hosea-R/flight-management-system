@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plane, AlertTriangle, PlaneTakeoff, PlaneLanding, Plus, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Plane, AlertTriangle, PlaneTakeoff, PlaneLanding, Plus, ArrowRight, ArrowLeft, Megaphone } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useSocket from '../../hooks/useSocket';
@@ -8,6 +8,7 @@ import airportService from '../../services/airportService';
 import StatCard from '../../components/stats/StatCard';
 import FlightChart from '../../components/stats/FlightChart';
 import RecentFlights from '../../components/stats/RecentFlights';
+import AirportAdsControl from '../../components/admin/AirportAdsControl';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Skeleton from '../../components/common/Skeleton';
@@ -182,12 +183,19 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      {/* Graphique historique */}
-      <Card header={<h2 className="text-lg font-bold text-slate-900">Trafic Hebdomadaire</h2>}>
-        <div className="h-80 w-full">
-          <FlightChart data={stats?.last7Days || []} />
+      {/* Graphique historique et Publicités */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card header={<h2 className="text-lg font-bold text-slate-900">Trafic Hebdomadaire</h2>}>
+            <div className="h-80 w-full">
+              <FlightChart data={stats?.last7Days || []} />
+            </div>
+          </Card>
         </div>
-      </Card>
+        <div>
+          <AirportAdsControl airportCode={effectiveAirportCode} />
+        </div>
+      </div>
 
       {/* Prochains vols */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

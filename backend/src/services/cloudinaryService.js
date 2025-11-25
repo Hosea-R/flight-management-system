@@ -69,6 +69,31 @@ const uploadVideo = async (file, folder = 'advertisements/videos') => {
 };
 
 /**
+ * Upload un PDF vers Cloudinary
+ * @param {Buffer|String} file - Buffer du fichier ou chemin local
+ * @param {String} folder - Dossier de destination
+ * @returns {Promise<Object>} - Résultat de l'upload
+ */
+const uploadPDF = async (file, folder = 'advertisements/contracts') => {
+  try {
+    const result = await cloudinary.uploader.upload(file, {
+      folder: folder,
+      resource_type: 'raw', // Pour les fichiers non-média (PDF, etc.)
+      allowed_formats: ['pdf']
+    });
+
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+      format: result.format,
+      bytes: result.bytes
+    };
+  } catch (error) {
+    throw new Error(`Erreur upload PDF: ${error.message}`);
+  }
+};
+
+/**
  * Supprime un média de Cloudinary
  * @param {String} publicId - ID public du média
  * @param {String} resourceType - Type de ressource ('image' ou 'video')
@@ -125,6 +150,7 @@ module.exports = {
   cloudinary,
   uploadImage,
   uploadVideo,
+  uploadPDF,
   deleteMedia,
   getMediaInfo,
   getOptimizedUrl

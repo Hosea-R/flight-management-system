@@ -47,11 +47,16 @@ const Advertisements = () => {
         airportService.getAllAirports()
       ]);
       
-      setAdvertisements(adsData.data);
-      setAirports(airportsData.data);
+      // advertisementService retourne maintenant directement le tableau
+      setAdvertisements(adsData || []);
+      // airportService peut retourner { data } ou directement le tableau
+      setAirports(airportsData.data || airportsData || []);
       setLoading(false);
     } catch (err) {
+      console.error('Error fetching advertisements data:', err);
       setError('Erreur lors du chargement des données');
+      setAdvertisements([]);
+      setAirports([]);
       setLoading(false);
     }
   };

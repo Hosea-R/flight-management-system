@@ -100,6 +100,18 @@ const advertisementSchema = new mongoose.Schema({
     default: 0
   },
   
+  // Historique des vues par jour
+  viewHistory: [{
+    date: {
+      type: Date,
+      required: true
+    },
+    count: {
+      type: Number,
+      default: 1
+    }
+  }],
+  
   // ===== DONNÉES CONTRACTUELLES =====
   
   // Informations client

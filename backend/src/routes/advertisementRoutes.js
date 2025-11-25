@@ -46,6 +46,7 @@ router.use(protect);
 router.use(authorize('admin', 'superadmin', 'ad-manager'));
 
 router.get('/', advertisementController.getAllAdvertisements);
+router.get('/alerts', advertisementController.getAdvertisementAlerts);
 router.get('/:id', advertisementController.getAdvertisementById);
 
 // Création avec validation
@@ -68,6 +69,18 @@ router.put('/:id',
 router.delete('/:id', 
   canManageAdvertisement,
   advertisementController.deleteAdvertisement
+);
+
+// Upload et suppression de PDFs de contrat
+router.post('/:id/contract/pdf',
+  canManageAdvertisement,
+  upload.single('pdf'),
+  advertisementController.uploadContractPDF
+);
+
+router.delete('/:id/contract/pdf/:attachmentId',
+  canManageAdvertisement,
+  advertisementController.deleteContractPDF
 );
 
 module.exports = router;
