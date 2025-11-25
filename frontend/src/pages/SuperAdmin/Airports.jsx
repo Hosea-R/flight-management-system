@@ -30,7 +30,8 @@ const Airports = () => {
   // Handler pour accéder au dashboard d'un aéroport
   const handleAccessAirport = (airportCode) => {
     setActiveAirport(airportCode);
-    navigate('/');
+    // Ouvrir le dashboard dans un nouvel onglet
+    window.open('/', '_blank');
   };
 
   useEffect(() => {

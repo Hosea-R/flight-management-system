@@ -32,7 +32,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['superadmin', 'admin'],
+    enum: ['superadmin', 'admin', 'ad-manager'],
     default: 'admin'
   },
   airportCode: {
@@ -50,11 +50,18 @@ const UserSchema = new mongoose.Schema({
         if (this.role === 'superadmin' && value) {
           return false;
         }
+        // Ad-manager peut avoir ou non un airportCode
         return true;
       },
       message: 'Les admins régionaux doivent avoir un code d\'aéroport, les superadmins non'
     }
   },
+  // Aéroports assignés pour les ad-managers (restrictions optionnelles)
+  assignedAirports: [{
+    type: String,
+    uppercase: true,
+    trim: true
+  }],
   isActive: {
     type: Boolean,
     default: true

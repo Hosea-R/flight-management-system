@@ -5,6 +5,7 @@ import useSocket from '../../hooks/useSocket';
 import useFlightFiltering from '../../hooks/useFlightFiltering';
 import BoardHeader from '../../components/displays/BoardHeader';
 import FlightBoardRow from '../../components/displays/FlightBoardRow';
+import AdCarousel from '../../components/displays/AdCarousel';
 import {  Plane } from 'lucide-react';
 import Loading from '../../components/common/Loading';
 import { formatAirportName } from '../../utils/formatters';
@@ -116,6 +117,11 @@ const GeneralBoard = () => {
         airportName={airportName}
         type="general"
       />
+
+      {/* Carrousel publicitaire */}
+      <div className="px-6 py-3">
+        <AdCarousel className="h-48" />
+      </div>
 
       <div className="display-scroll-container">
         {/* Header unique pour tous les vols */}

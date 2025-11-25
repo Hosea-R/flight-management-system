@@ -18,6 +18,7 @@ const { requestLogger, errorLogger } = require('./middleware/logger.middleware')
 
 // Importer le script de nettoyage
 const { cleanupOldFlights } = require('../scripts/cleanupOldFlights');
+const { startAllJobs: startAdCronJobs } = require('./services/cronJobs');
 
 // Créer l'application Express
 const app = express();
@@ -90,6 +91,7 @@ app.use('/api/airlines', authRateLimiter, require('./routes/airlines.routes'));
 app.use('/api/flights', authRateLimiter, require('./routes/flights.routes'));
 app.use('/api/users', authRateLimiter, require('./routes/users.routes'));
 app.use('/api/stats', authRateLimiter, require('./routes/stats.routes'));
+app.use('/api/advertisements', authRateLimiter, require('./routes/advertisementRoutes'));
 
 // Gestion des erreurs 404
 app.use((req, res) => {
@@ -202,8 +204,13 @@ const startServer = async () => {
       console.log('╔═══════════════════════════════════════════════════════╗');
       console.log('║                                                       ║');
       console.log('║   🛫 SYSTÈME DE GESTION DE VOLS - MADAGASCAR 🇲🇬     ║');
-      console.log('║                                                       ║');
-      console.log('╠═══════════════════════════════════════════════════════╣');
+      console.log(`║   📊 Nettoyage auto: 3h00                            ║`);
+      console.log(`║   📢 Publicités CRON: Actifs                         ║`);
+      console.log('╚═══════════════════════════════════════════════════════╝');
+      console.log('');
+      
+      // Démarrer les CRON jobs de publicités
+      startAdCronJobs();
       console.log(`║   ⚙️  Environnement: ${process.env.NODE_ENV?.padEnd(32)} ║`);
       console.log(`║   🌐 Serveur: http://localhost:${PORT}               ║`);
       console.log(`║   🔌 Socket.io: Activé                               ║`);

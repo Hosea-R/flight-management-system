@@ -21,6 +21,12 @@ const PublicDisplays = lazy(() => import('./pages/PublicDisplays'));
 const SuperAdminDashboard = lazy(() => import('./pages/SuperAdmin/Dashboard'));
 const AdminDashboard = lazy(() => import('./pages/Admin/Dashboard'));
 
+// Ad-Manager
+const AdManagerLayout = lazy(() => import('./layouts/AdManagerLayout'));
+const AdManagerDashboard = lazy(() => import('./pages/AdManager/Dashboard'));
+const AdManagerAdvertisements = lazy(() => import('./pages/AdManager/Advertisements'));
+const AdManagerReports = lazy(() => import('./pages/AdManager/Reports'));
+
 // Composant de chargement
 const LoadingFallback = () => (
   <div className="flex items-center justify-center h-screen">
@@ -111,6 +117,17 @@ function App() {
 
                   {/* Routes Communes */}
                   <Route path="public-displays" element={<PublicDisplays />} />
+                </Route>
+
+                {/* Routes Ad-Manager */}
+                <Route path="/ad-manager" element={
+                  <ProtectedRoute roles={['ad-manager']}>
+                    <AdManagerLayout />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<AdManagerDashboard />} />
+                  <Route path="advertisements" element={<AdManagerAdvertisements />} />
+                  <Route path="reports" element={<AdManagerReports />} />
                 </Route>
 
                 {/* 404 */}

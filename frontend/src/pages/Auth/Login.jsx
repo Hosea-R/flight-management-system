@@ -25,7 +25,15 @@ const Login = () => {
     try {
       const result = await login(formData.email, formData.password);
       if (result.success) {
-        navigate(from, { replace: true });
+        // Rediriger selon le rôle
+        const userRole = result.user?.role;
+        let redirectPath = from !== '/' ? from : '/';
+        
+        if (userRole === 'ad-manager') {
+          redirectPath = '/ad-manager';
+        }
+        
+        navigate(redirectPath, { replace: true });
       } else {
         setError(result.error);
       }
