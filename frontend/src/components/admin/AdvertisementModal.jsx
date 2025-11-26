@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import advertisementService from '../../services/advertisementService';
-import { X, Upload, Image as ImageIcon, Video, Type, ChevronDown, FileText, User, DollarSign, Bell } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Video, Type, ChevronDown, FileText, User, DollarSign, Bell, Calendar } from 'lucide-react';
 import Button from '../common/Button';
 
 // AccordionSection component défini en dehors pour éviter re-création
@@ -40,6 +40,11 @@ const AdvertisementModal = ({ advertisement, airports, onClose, onSuccess }) => 
     airports: [],
     isActive: true,
     displayMode: 'half-screen',
+    // Planification automatique
+    displayLimit: '',
+    displayStartHour: '',
+    displayEndHour: '',
+    minDisplayInterval: '',
     // Client
     clientName: '',
     clientCompany: '',
@@ -70,6 +75,7 @@ const AdvertisementModal = ({ advertisement, airports, onClose, onSuccess }) => 
   
   // Accordion state
   const [expandedSections, setExpandedSections] = useState({
+    scheduling: false,
     client: false,
     contract: false,
     alerts: false
@@ -89,6 +95,11 @@ const AdvertisementModal = ({ advertisement, airports, onClose, onSuccess }) => 
         airports: advertisement.airports || [],
         isActive: advertisement.isActive,
         displayMode: advertisement.displayMode || 'half-screen',
+        // Planification automatique
+        displayLimit: advertisement.displayLimit || '',
+        displayStartHour: advertisement.displayHours?.startHour !== undefined ? advertisement.displayHours.startHour : '',
+        displayEndHour: advertisement.displayHours?.endHour !== undefined ? advertisement.displayHours.endHour : '',
+        minDisplayInterval: advertisement.minDisplayInterval || '',
         // Client
         clientName: advertisement.client?.name || '',
         clientCompany: advertisement.client?.company || '',
@@ -177,6 +188,20 @@ const AdvertisementModal = ({ advertisement, airports, onClose, onSuccess }) => 
         data.append('textContent', formData.textContent);
       } else if (mediaFile) {
         data.append('media', mediaFile);
+      }
+
+      // Planification automatique
+      if (formData.displayLimit) {
+        data.append('displayLimit', formData.displayLimit);
+      }
+      if (formData.displayStartHour !== '' && formData.displayEndHour !== '') {
+        data.append('displayHours', JSON.stringify({
+          startHour: parseInt(formData.displayStartHour),
+          endHour: parseInt(formData.displayEndHour)
+        }));
+      }
+      if (formData.minDisplayInterval) {
+        data.append('minDisplayInterval', formData.minDisplayInterval);
       }
 
       // Client info
@@ -497,13 +522,112 @@ const AdvertisementModal = ({ advertisement, airports, onClose, onSuccess }) => 
                     type="checkbox"
                     checked={formData.isActive}
                     onChange={(e) => handleInputChange('isActive', e.target.checked)}
-                    className="h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded transition-all"
+                    className="h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded-all"
                   />
                   <span className="ml-3 text-sm font-medium text-slate-700">
                     Publicité active
                   </span>
                 </label>
               </div>
+
+              {/* SECTION: Planification Automatique */}
+              <AccordionSection 
+                id="scheduling" 
+                title="Planification Automatique" 
+                icon={Calendar}
+                isExpanded={expandedSections.scheduling}
+                toggleSection={toggleSection}
+              >
+                <div className="space-y-4">
+                  {/* Quota d'affichages */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Nombre maximum d'affichages
+                      {advertisement && advertisement.currentDisplays !== undefined && (
+                        <span className="ml-2 text-xs text-slate-500">
+                          ({advertisement.currentDisplays || 0} affichages jusqu'à présent)
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.displayLimit}
+                      onChange={(e) => handleInputChange('displayLimit', e.target.value)}
+                      className="w-full rounded-xl border-slate-200 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all text-sm"
+                      placeholder="Illimité (laissez vide)"
+                      min="1"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Nombre maximum de fois que cette publicité sera affichée. Laissez vide pour aucune limite.
+                    </p>
+                  </div>
+
+                  {/* Plage horaire */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Plage horaire d'affichage
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Heure de début</label>
+                        <select
+                          value={formData.displayStartHour}
+                          onChange={(e) => handleInputChange('displayStartHour', e.target.value)}
+                          className="w-full rounded-xl border-slate-200 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all text-sm"
+                        >
+                          <option value="">Toute la journée</option>
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <option key={i} value={i}>{i}h00</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Heure de fin</label>
+                        <select
+                          value={formData.displayEndHour}
+                          onChange={(e) => handleInputChange('displayEndHour', e.target.value)}
+                          className="w-full rounded-xl border-slate-200 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all text-sm"
+                        >
+                          <option value="">Toute la journée</option>
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <option key={i} value={i}>{i}h00</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Définissez une plage horaire pour n'afficher cette publicité qu'à certaines heures. Laissez vide pour afficher toute la journée.
+                    </p>
+                  </div>
+
+                  {/* Fréquence d'affichage (intervalle minimum) */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Fréquence d'affichage
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={formData.minDisplayInterval}
+                        onChange={(e) => handleInputChange('minDisplayInterval', e.target.value)}
+                        className="flex-1 rounded-xl border-slate-200 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all text-sm"
+                        placeholder="Ex: 300"
+                        min="0"
+                      />
+                      <select
+                        value="seconds"
+                        disabled
+                        className="rounded-xl border-slate-200 bg-slate-50 text-sm w-32"
+                      >
+                        <option value="seconds">secondes</option>
+                      </select>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Intervalle minimum entre deux affichages de cette publicité. Ex: 300 = toutes les 5 minutes minimum. Laissez vide pour aucune restriction.
+                    </p>
+                  </div>
+                </div>
+              </AccordionSection>
 
               {/* SECTION: Informations Client */}
               <AccordionSection 

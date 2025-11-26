@@ -1,4 +1,5 @@
 const Advertisement = require('../models/Advertisement');
+const SystemSettings = require('../models/SystemSettings');
 const { uploadImage, uploadVideo, uploadPDF, deleteMedia } = require('../services/cloudinaryService');
 const logger = require('../config/logger');
 
@@ -58,12 +59,29 @@ exports.getActiveAdvertisements = async (req, res) => {
   try {
     const { airportCode } = req.params;
     
+    // Vérifier le mode urgence
+    const emergencySetting = await SystemSettings.findOne({ key: 'adsEmergencyDisabled' });
+    if (emergencySetting && emergencySetting.value === true) {
+      // Mode urgence actif: ne retourner aucune publicité
+      return res.json({
+        success: true,
+        data: [],
+        count: 0,
+        emergencyMode: true,
+        message: 'Publicités désactivées en mode urgence'
+      });
+    }
+    
     const advertisements = await Advertisement.getActiveForAirport(airportCode);
+    
+    // Filtrer côté serveur les pubs qui peuvent être affichées
+    const displayableAds = advertisements.filter(ad => ad.canDisplay());
     
     res.json({
       success: true,
-      data: advertisements,
-      count: advertisements.length
+      data: displayableAds,
+      count: displayableAds.length,
+      emergencyMode: false
     });
   } catch (error) {
     logger.error('Error fetching active advertisements:', error);
@@ -110,7 +128,8 @@ exports.createAdvertisement = async (req, res) => {
     const { 
       type, title, textContent, duration, priority, startDate, endDate, 
       airports, showOnAllAirports, isActive, displayMode,
-      client, contract, alerts
+      client, contract, alerts,
+      displayLimit, displayHours, minDisplayInterval
     } = req.body;
     
     let mediaData = {};
@@ -134,6 +153,7 @@ exports.createAdvertisement = async (req, res) => {
     const parsedClient = client ? (typeof client === 'string' ? JSON.parse(client) : client) : undefined;
     const parsedContract = contract ? (typeof contract === 'string' ? JSON.parse(contract) : contract) : undefined;
     const parsedAlerts = alerts ? (typeof alerts === 'string' ? JSON.parse(alerts) : alerts) : undefined;
+    const parsedDisplayHours = displayHours ? (typeof displayHours === 'string' ? JSON.parse(displayHours) : displayHours) : undefined;
     
     // Créer la publicité
     const advertisement = new Advertisement({
@@ -149,6 +169,9 @@ exports.createAdvertisement = async (req, res) => {
       showOnAllAirports: showOnAllAirports === 'true',
       isActive: isActive !== undefined ? isActive === 'true' : true,
       displayMode: displayMode || 'half-screen',
+      displayLimit: displayLimit ? parseInt(displayLimit) : undefined,
+      displayHours: parsedDisplayHours,
+      minDisplayInterval: minDisplayInterval ? parseInt(minDisplayInterval) : undefined,
       client: parsedClient,
       contract: parsedContract,
       alerts: parsedAlerts,
@@ -158,6 +181,20 @@ exports.createAdvertisement = async (req, res) => {
     await advertisement.save();
     
     logger.info(`Advertisement created: ${advertisement._id} by user ${req.user.id}`);
+
+    // Émettre l'événement Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+      if (advertisement.showOnAllAirports) {
+        io.emit('advertisement:created', advertisement);
+      } else if (advertisement.airports && advertisement.airports.length > 0) {
+        advertisement.airports.forEach(airportCode => {
+          io.to(airportCode).emit('advertisement:created', advertisement);
+        });
+        // Également émettre aux admins (GLOBAL)
+        io.to('GLOBAL').emit('advertisement:created', advertisement);
+      }
+    }
     
     res.status(201).json({
       success: true,
@@ -188,7 +225,8 @@ exports.updateAdvertisement = async (req, res) => {
     const { 
       title, textContent, duration, priority, startDate, endDate, 
       airports, showOnAllAirports, isActive, displayMode,
-      client, contract, alerts
+      client, contract, alerts,
+      displayLimit, displayHours, minDisplayInterval
     } = req.body;
     
     const advertisement = await Advertisement.findById(id);
@@ -231,6 +269,18 @@ exports.updateAdvertisement = async (req, res) => {
     if (isActive !== undefined) advertisement.isActive = isActive === 'true';
     if (displayMode) advertisement.displayMode = displayMode;
     
+    // Mettre à jour les nouveaux champs de planification
+    if (displayLimit !== undefined) {
+      advertisement.displayLimit = displayLimit ? parseInt(displayLimit) : undefined;
+    }
+    if (displayHours) {
+      const parsedDisplayHours = typeof displayHours === 'string' ? JSON.parse(displayHours) : displayHours;
+      advertisement.displayHours = parsedDisplayHours;
+    }
+    if (minDisplayInterval !== undefined) {
+      advertisement.minDisplayInterval = minDisplayInterval ? parseInt(minDisplayInterval) : undefined;
+    }
+    
     // Mettre à jour client, contract, alerts si fournis
     if (client) {
       const parsedClient = typeof client === 'string' ? JSON.parse(client) : client;
@@ -254,6 +304,20 @@ exports.updateAdvertisement = async (req, res) => {
     await advertisement.save();
     
     logger.info(`Advertisement updated: ${id} by user ${req.user.id}`);
+
+    // Émettre l'événement Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+      if (advertisement.showOnAllAirports) {
+        io.emit('advertisement:updated', advertisement);
+      } else if (advertisement.airports && advertisement.airports.length > 0) {
+        advertisement.airports.forEach(airportCode => {
+          io.to(airportCode).emit('advertisement:updated', advertisement);
+        });
+        // Également émettre aux admins (GLOBAL)
+        io.to('GLOBAL').emit('advertisement:updated', advertisement);
+      }
+    }
     
     res.json({
       success: true,
@@ -293,6 +357,22 @@ exports.deleteAdvertisement = async (req, res) => {
     await Advertisement.findByIdAndDelete(id);
     
     logger.info(`Advertisement deleted: ${id} by user ${req.user.id}`);
+
+    // Émettre l'événement Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+      // Pour la suppression, on ne peut pas savoir facilement où elle était affichée si on ne l'a pas stocké avant
+      // Mais on a l'objet 'advertisement' récupéré avant suppression
+      if (advertisement.showOnAllAirports) {
+        io.emit('advertisement:deleted', { id });
+      } else if (advertisement.airports && advertisement.airports.length > 0) {
+        advertisement.airports.forEach(airportCode => {
+          io.to(airportCode).emit('advertisement:deleted', { id });
+        });
+        // Également émettre aux admins (GLOBAL)
+        io.to('GLOBAL').emit('advertisement:deleted', { id });
+      }
+    }
     
     res.json({
       success: true,
@@ -324,8 +404,10 @@ exports.incrementViewCount = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Publicité non trouvée' });
     }
     
-    // Incrémenter le compteur total
+    // Incrémenter les compteurs ET mettre à jour lastDisplayedAt
     advertisement.viewCount += 1;
+    advertisement.currentDisplays += 1;
+    advertisement.lastDisplayedAt = new Date(); // Pour le contrôle de fréquence
     
     // Gestion de l'historique
     const historyIndex = advertisement.viewHistory.findIndex(h => 
@@ -345,7 +427,10 @@ exports.incrementViewCount = async (req, res) => {
     
     res.json({
       success: true,
-      data: { viewCount: advertisement.viewCount }
+      data: { 
+        viewCount: advertisement.viewCount,
+        currentDisplays: advertisement.currentDisplays
+      }
     });
   } catch (error) {
     logger.error('Error incrementing view count:', error);

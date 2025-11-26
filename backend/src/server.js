@@ -92,6 +92,7 @@ app.use('/api/flights', authRateLimiter, require('./routes/flights.routes'));
 app.use('/api/users', authRateLimiter, require('./routes/users.routes'));
 app.use('/api/stats', authRateLimiter, require('./routes/stats.routes'));
 app.use('/api/advertisements', authRateLimiter, require('./routes/advertisementRoutes'));
+app.use('/api/system-settings', authRateLimiter, require('./routes/systemSettingsRoutes'));
 
 // Gestion des erreurs 404
 app.use((req, res) => {

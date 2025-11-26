@@ -74,7 +74,6 @@ const UserSchema = new mongoose.Schema({
 });
 
 // Index pour optimiser les recherches
-UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ airportCode: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ role: 1, isActive: 1 }); // Compound index pour filtrer par rôle et statut

@@ -64,7 +64,6 @@ const AirportSchema = new mongoose.Schema({
 });
 
 // Index pour optimiser les recherches
-AirportSchema.index({ code: 1 }, { unique: true });
 AirportSchema.index({ city: 1 });
 AirportSchema.index({ isActive: 1 });
 AirportSchema.index({ isCentral: 1 });

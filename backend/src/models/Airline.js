@@ -34,7 +34,6 @@ const AirlineSchema = new mongoose.Schema({
 });
 
 // Index pour optimiser les recherches
-AirlineSchema.index({ code: 1 }, { unique: true });
 AirlineSchema.index({ name: 1 });
 AirlineSchema.index({ isActive: 1 });
 

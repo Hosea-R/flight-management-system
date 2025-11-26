@@ -112,6 +112,46 @@ const advertisementSchema = new mongoose.Schema({
     }
   }],
   
+  // ===== PLANIFICATION AUTOMATIQUE =====
+  
+  // Quota d'affichages (nombre max)
+  displayLimit: {
+    type: Number,
+    min: 0
+  },
+  
+  // Compteur d'affichages actuels
+  currentDisplays: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  
+  // Plage horaire d'affichage (format 24h, ex: 8 = 8h00, 18 = 18h00)
+  displayHours: {
+    startHour: {
+      type: Number,
+      min: 0,
+      max: 23
+    },
+    endHour: {
+      type: Number,
+      min: 0,
+      max: 23
+    }
+  },
+  
+  // Intervalle minimum entre deux affichages (en secondes)
+  minDisplayInterval: {
+    type: Number,
+    min: 0
+  },
+  
+  // Dernière fois que la pub a été affichée
+  lastDisplayedAt: {
+    type: Date
+  },
+  
   // ===== DONNÉES CONTRACTUELLES =====
   
   // Informations client
@@ -251,6 +291,26 @@ advertisementSchema.methods.isValidAt = function(date = new Date()) {
   return true;
 };
 
+// Méthode pour vérifier si l'heure actuelle est dans la plage horaire autorisée
+advertisementSchema.methods.isWithinDisplayHours = function(date = new Date()) {
+  // Si pas de plage horaire définie, toujours autorisé
+  if (!this.displayHours || 
+      this.displayHours.startHour === undefined || 
+      this.displayHours.endHour === undefined) {
+    return true;
+  }
+  
+  const currentHour = date.getHours();
+  const { startHour, endHour } = this.displayHours;
+  
+  // Gérer le cas où la plage traverse minuit (ex: 22h à 6h)
+  if (startHour <= endHour) {
+    return currentHour >= startHour && currentHour < endHour;
+  } else {
+    return currentHour >= startHour || currentHour < endHour;
+  }
+};
+
 // Méthode statique pour récupérer les pubs actives pour un aéroport
 advertisementSchema.statics.getActiveForAirport = async function(airportCode) {
   const now = new Date();
@@ -336,11 +396,24 @@ advertisementSchema.methods.canDisplay = function() {
   // Vérifier validité temporelle
   if (!this.isValidAt()) return false;
   
-  // Vérifier quota
+  // Vérifier quota du contrat
   if (this.isQuotaReached()) return false;
   
   // Vérifier statut du contrat
   if (this.contract?.status && this.contract.status !== 'active') return false;
+  
+  // Vérifier quota d'affichages automatique
+  if (this.displayLimit && this.currentDisplays >= this.displayLimit) return false;
+  
+  // Vérifier plage horaire
+  if (!this.isWithinDisplayHours()) return false;
+  
+  // Vérifier intervalle minimum entre affichages
+  if (this.minDisplayInterval && this.lastDisplayedAt) {
+    const now = new Date();
+    const timeSinceLastDisplay = (now - this.lastDisplayedAt) / 1000; // en secondes
+    if (timeSinceLastDisplay < this.minDisplayInterval) return false;
+  }
   
   return true;
 };

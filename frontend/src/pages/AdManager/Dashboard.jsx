@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import advertisementService from '../../services/advertisementService';
+import socketService from '../../services/socket';
 import { TrendingUp, Eye, DollarSign, AlertCircle, Calendar, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
@@ -44,6 +45,25 @@ const AdManagerDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Rejoindre la room globale pour les mises à jour admin
+    socketService.joinGlobal();
+
+    // Écouter les mises à jour
+    const handleAdUpdate = () => {
+      console.log('🔄 Mise à jour du dashboard reçue via Socket.io');
+      fetchDashboardData();
+    };
+
+    socketService.on('advertisement:created', handleAdUpdate);
+    socketService.on('advertisement:updated', handleAdUpdate);
+    socketService.on('advertisement:deleted', handleAdUpdate);
+
+    return () => {
+      socketService.off('advertisement:created', handleAdUpdate);
+      socketService.off('advertisement:updated', handleAdUpdate);
+      socketService.off('advertisement:deleted', handleAdUpdate);
+    };
   }, []);
 
   const fetchDashboardData = async () => {

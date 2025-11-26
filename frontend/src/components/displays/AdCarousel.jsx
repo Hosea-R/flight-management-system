@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import advertisementService from '../../services/advertisementService';
+import socketService from '../../services/socket';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
@@ -12,6 +13,30 @@ const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
 
   useEffect(() => {
     fetchAdvertisements();
+
+    // Rejoindre la room de l'aéroport
+    if (activeAirport) {
+      socketService.joinAirport(activeAirport);
+    }
+
+    // Écouter les mises à jour
+    const handleAdUpdate = () => {
+      console.log('🔄 Mise à jour des publicités reçue via Socket.io');
+      fetchAdvertisements();
+    };
+
+    socketService.on('advertisement:created', handleAdUpdate);
+    socketService.on('advertisement:updated', handleAdUpdate);
+    socketService.on('advertisement:deleted', handleAdUpdate);
+
+    return () => {
+      socketService.off('advertisement:created', handleAdUpdate);
+      socketService.off('advertisement:updated', handleAdUpdate);
+      socketService.off('advertisement:deleted', handleAdUpdate);
+      if (activeAirport) {
+        socketService.leaveAirport(activeAirport);
+      }
+    };
   }, [activeAirport, displayMode]);
 
   useEffect(() => {
@@ -41,15 +66,24 @@ const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
 
   const fetchAdvertisements = async () => {
     try {
-      const ads = await advertisementService.getActiveAdvertisements(activeAirport);
+      const response = await advertisementService.getActiveAdvertisements(activeAirport);
       
-      // Filtrer les pubs selon le displayMode
+      // Vérifier le mode urgence
+      if (response.emergencyMode) {
+        setAdvertisements([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Récupérer les pubs (déjà filtrées côté serveur par canDisplay())
+      const ads = response.data || [];
+      
+      // Filtrer selon le displayMode
       const filteredAds = ads.filter(ad => 
         (ad.displayMode || 'half-screen') === displayMode
       );
       
-      // advertisementService retourne maintenant directement le tableau
-      setAdvertisements(filteredAds || []);
+      setAdvertisements(filteredAds);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching advertisements:', error);

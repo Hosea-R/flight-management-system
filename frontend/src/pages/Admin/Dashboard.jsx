@@ -193,7 +193,7 @@ const AdminDashboard = () => {
           </Card>
         </div>
         <div>
-          <AirportAdsControl airportCode={effectiveAirportCode} />
+          <AirportAdsControl />
         </div>
       </div>
 

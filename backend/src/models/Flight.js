@@ -170,7 +170,6 @@ FlightSchema.virtual('destinationAirport', {
 // S'assurer que les virtuels sont inclus dans les résultats JSON
 FlightSchema.set('toJSON', { virtuals: true });
 FlightSchema.set('toObject', { virtuals: true });
-FlightSchema.index({ status: 1 });
 FlightSchema.index({ linkedFlightId: 1 });
 FlightSchema.index({ airlineId: 1 });
 FlightSchema.index({ type: 1, originAirportCode: 1 });
