@@ -318,14 +318,20 @@ advertisementSchema.statics.getActiveForAirport = async function(airportCode) {
   return this.find({
     isActive: true,
     startDate: { $lte: now },
-    $or: [
-      { endDate: { $exists: false } },
-      { endDate: null },
-      { endDate: { $gte: now } }
-    ],
-    $or: [
-      { showOnAllAirports: true },
-      { airports: airportCode }
+    $and: [
+      {
+        $or: [
+          { endDate: { $exists: false } },
+          { endDate: null },
+          { endDate: { $gte: now } }
+        ]
+      },
+      {
+        $or: [
+          { showOnAllAirports: true },
+          { airports: airportCode }
+        ]
+      }
     ]
   })
   .sort({ priority: 1, createdAt: -1 })

@@ -4,20 +4,23 @@ import advertisementService from '../../services/advertisementService';
 import socketService from '../../services/socket';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
-  const { activeAirport } = useAuth();
+const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
   const [advertisements, setAdvertisements] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
+    if (!airportCode) {
+      console.warn('⚠️  AdCarousel: airportCode manquant');
+      setLoading(false);
+      return;
+    }
+
     fetchAdvertisements();
 
     // Rejoindre la room de l'aéroport
-    if (activeAirport) {
-      socketService.joinAirport(activeAirport);
-    }
+    socketService.joinAirport(airportCode);
 
     // Écouter les mises à jour
     const handleAdUpdate = () => {
@@ -33,11 +36,21 @@ const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
       socketService.off('advertisement:created', handleAdUpdate);
       socketService.off('advertisement:updated', handleAdUpdate);
       socketService.off('advertisement:deleted', handleAdUpdate);
-      if (activeAirport) {
-        socketService.leaveAirport(activeAirport);
-      }
+      socketService.leaveAirport(airportCode);
     };
-  }, [activeAirport, displayMode]);
+  }, [airportCode]);
+
+  // Notifier le parent du displayMode de la pub actuelle
+  useEffect(() => {
+    if (advertisements.length > 0 && onDisplayModeChange) {
+      const currentAd = advertisements[currentIndex];
+      const mode = currentAd?.displayMode || 'half-screen';
+      onDisplayModeChange(mode);
+    } else if (advertisements.length === 0 && onDisplayModeChange) {
+      // Aucune pub = mode normal (pas de pub)
+      onDisplayModeChange(null);
+    }
+  }, [currentIndex, advertisements, onDisplayModeChange]);
 
   useEffect(() => {
     if (advertisements.length === 0) return;
@@ -65,28 +78,36 @@ const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
   }, [currentIndex, advertisements]);
 
   const fetchAdvertisements = async () => {
+    if (!airportCode) return;
+
     try {
-      const response = await advertisementService.getActiveAdvertisements(activeAirport);
+      // Le service retourne maintenant { success, data, count, emergencyMode }
+      const response = await advertisementService.getActiveAdvertisements(airportCode);
+      
+      console.log('📢 Réponse API publicités:', response);
       
       // Vérifier le mode urgence
       if (response.emergencyMode) {
+        console.warn('⚠️ Mode urgence activé - publicités désactivées');
         setAdvertisements([]);
         setLoading(false);
         return;
       }
       
-      // Récupérer les pubs (déjà filtrées côté serveur par canDisplay())
+      // Récupérer TOUTES les pubs (ne plus filtrer par displayMode)
       const ads = response.data || [];
       
-      // Filtrer selon le displayMode
-      const filteredAds = ads.filter(ad => 
-        (ad.displayMode || 'half-screen') === displayMode
-      );
+      console.log(`📢 ${ads.length} publicité(s) reçue(s) pour ${airportCode}`);
       
-      setAdvertisements(filteredAds);
+      // Log détaillé de chaque pub
+      ads.forEach((ad, index) => {
+        console.log(`  Pub ${index + 1}: "${ad.title}" - displayMode: "${ad.displayMode}"`);
+      });
+      
+      setAdvertisements(ads);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching advertisements:', error);
+      console.error('❌ Erreur chargement publicités:', error);
       setAdvertisements([]);
       setLoading(false);
     }
@@ -106,10 +127,11 @@ const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
 
   const currentAd = advertisements[currentIndex];
   
-  // Classes CSS adaptatives selon le mode
-  const containerClasses = displayMode === 'full-screen'
-    ? `fixed inset-0 z-50 ${className}` // Full-screen occupe tout l'écran
-    : `relative bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg ${className}`; // Half-screen
+  // Classes CSS adaptatives selon le mode de la pub actuelle
+  const adDisplayMode = currentAd?.displayMode || 'half-screen';
+  const containerClasses = adDisplayMode === 'full-screen'
+    ? `w-full h-full ${className}` // Full-screen
+    : `relative bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg ${className}`; // Half-screen ou normal
 
   return (
     <div className={containerClasses}>
@@ -140,7 +162,7 @@ const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
           <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-8">
             <div className="text-center">
               <p className={`text-white font-bold leading-relaxed animate-pulse ${
-                displayMode === 'full-screen' ? 'text-5xl md:text-7xl' : 'text-2xl md:text-4xl'
+                adDisplayMode === 'full-screen' ? 'text-5xl md:text-7xl' : 'text-2xl md:text-4xl'
               }`}>
                 {currentAd.textContent}
               </p>
@@ -150,23 +172,23 @@ const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
 
         {/* Overlay avec titre et contrôles */}
         <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent ${
-          displayMode === 'full-screen' ? 'p-8' : 'p-4'
+          adDisplayMode === 'full-screen' ? 'p-8' : 'p-4'
         }`}>
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <h3 className={`text-white font-bold ${
-                displayMode === 'full-screen' ? 'text-3xl' : 'text-lg'
+                adDisplayMode === 'full-screen' ? 'text-3xl' : 'text-lg'
               }`}>{currentAd.title}</h3>
               {advertisements.length > 1 && ( <div className={`flex items-center gap-2 ${
-                displayMode === 'full-screen' ? 'mt-4' : 'mt-2'
+                adDisplayMode === 'full-screen' ? 'mt-4' : 'mt-2'
               }`}>
                 {advertisements.map((_, index) => (
                   <div
                     key={index}
                     className={`h-1 rounded-full transition-all ${
                       index === currentIndex
-                        ? displayMode === 'full-screen' ? 'w-12 bg-white' : 'w-8 bg-white'
-                        : displayMode === 'full-screen' ? 'w-6 bg-white/40' : 'w-4 bg-white/40'
+                        ? adDisplayMode === 'full-screen' ? 'w-12 bg-white' : 'w-8 bg-white'
+                        : adDisplayMode === 'full-screen' ? 'w-6 bg-white/40' : 'w-4 bg-white/40'
                     }`}
                   />
                 ))}
@@ -179,20 +201,20 @@ const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
                 <button
                   onClick={prevSlide}
                   className={`bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors ${
-                    displayMode === 'full-screen' ? 'p-4' : 'p-2'
+                    adDisplayMode === 'full-screen' ? 'p-4' : 'p-2'
                   }`}
                   title="Précédent"
                 >
-                  <ChevronLeft className={displayMode === 'full-screen' ? 'w-8 h-8 text-white' : 'w-5 h-5 text-white'} />
+                  <ChevronLeft className={adDisplayMode === 'full-screen' ? 'w-8 h-8 text-white' : 'w-5 h-5 text-white'} />
                 </button>
                 <button
                   onClick={nextSlide}
                   className={`bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors ${
-                    displayMode === 'full-screen' ? 'p-4' : 'p-2'
+                    adDisplayMode === 'full-screen' ? 'p-4' : 'p-2'
                   }`}
                   title="Suivant"
                 >
-                  <ChevronRight className={displayMode === 'full-screen' ? 'w-8 h-8 text-white' : 'w-5 h-5 text-white'} />
+                  <ChevronRight className={adDisplayMode === 'full-screen' ? 'w-8 h-8 text-white' : 'w-5 h-5 text-white'} />
                 </button>
               </div>
             )}
@@ -200,7 +222,7 @@ const AdCarousel = ({ className = '', displayMode = 'half-screen' }) => {
 
           {/* Progress bar */}
           <div className={`bg-white/20 rounded-full overflow-hidden ${
-            displayMode === 'full-screen' ? 'mt-4 h-2' : 'mt-3 h-1'
+            adDisplayMode === 'full-screen' ? 'mt-4 h-2' : 'mt-3 h-1'
           }`}>
             <div
               className="h-full bg-white transition-all duration-1000 ease-linear"

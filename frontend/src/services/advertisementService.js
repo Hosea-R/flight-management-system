@@ -12,8 +12,8 @@ const advertisementService = {
   // Récupérer les publicités actives pour un aéroport (public)
   getActiveAdvertisements: async (airportCode) => {
     const response = await api.get(`/advertisements/active/${airportCode}`);
-    // L'API retourne { success, data, count }, on retourne directement data
-    return response.data.data || [];
+    // Retourner l'objet complet pour permettre la vérification de emergencyMode
+    return response.data;
   },
 
   // Récupérer une publicité par ID

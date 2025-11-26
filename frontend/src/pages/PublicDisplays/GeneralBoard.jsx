@@ -20,6 +20,7 @@ const GeneralBoard = () => {
   const [arrivals, setArrivals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [airportName, setAirportName] = useState('');
+  const [currentAdMode, setCurrentAdMode] = useState(null);
 
   // Appliquer le filtrage et le tri
   const visibleDepartures = useFlightFiltering(departures);
@@ -34,7 +35,6 @@ const GeneralBoard = () => {
   // Écouter les mises à jour temps réel
   useEffect(() => {
     if (socket && airportCode) {
-      // Rejoindre la room de l'aéroport
       if (socket.isConnected) {
         socket.joinAirport(airportCode.toUpperCase());
       }
@@ -42,7 +42,6 @@ const GeneralBoard = () => {
       const handleFlightUpdate = (updatedFlight) => {
         const code = airportCode.toUpperCase();
         
-        // Mise à jour des départs
         if (updatedFlight.originAirportCode === code && updatedFlight.type === 'departure') {
           setDepartures(prev => {
             const exists = prev.find(f => f._id === updatedFlight._id);
@@ -54,7 +53,6 @@ const GeneralBoard = () => {
           });
         }
         
-        // Mise à jour des arrivées
         if (updatedFlight.destinationAirportCode === code && updatedFlight.type === 'arrival') {
           setArrivals(prev => {
             const exists = prev.find(f => f._id === updatedFlight._id);
@@ -106,6 +104,66 @@ const GeneralBoard = () => {
     }
   };
 
+  const renderFlightsList = () => (
+    <div className="display-scroll-container">
+      <div className="display-table-header">
+        <div className="col-span-3">VOL</div>
+        <div className="col-span-3">DESTINATION / ORIGINE</div>
+        <div className="col-span-2">PROGRAMMÉ</div>
+        <div className="col-span-2">PRÉVU</div>
+        <div className="col-span-2">STATUT</div>
+      </div>
+
+      <div>
+        <div className="display-section-header">
+          <Plane className="h-6 w-6" />
+          <span>Départs</span>
+        </div>
+
+        {visibleDepartures.length === 0 ? (
+          <div className="display-empty py-8">
+            <p className="text-lg">Aucun départ</p>
+          </div>
+        ) : (
+          <div>
+            {visibleDepartures.map((flight, index) => (
+              <FlightBoardRow
+                key={flight._id}
+                flight={flight}
+                type="departure"
+                index={index}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="display-section-header">
+          <Plane className="h-6 w-6 transform rotate-180" />
+          <span>Arrivées</span>
+        </div>
+
+        {visibleArrivals.length === 0 ? (
+          <div className="display-empty py-8">
+            <p className="text-lg">Aucune arrivée</p>
+          </div>
+        ) : (
+          <div>
+            {visibleArrivals.map((flight, index) => (
+              <FlightBoardRow
+                key={flight._id}
+                flight={flight}
+                type="arrival"
+                index={index}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   if (loading) {
     return <Loading fullScreen text="Chargement des vols..." />;
   }
@@ -118,71 +176,40 @@ const GeneralBoard = () => {
         type="general"
       />
 
-      {/* Carrousel publicitaire */}
-      <div className="px-6 py-3">
-        <AdCarousel className="h-48" />
-      </div>
-
-      <div className="display-scroll-container">
-        {/* Header unique pour tous les vols */}
-        <div className="display-table-header">
-          <div className="col-span-3">VOL</div>
-          <div className="col-span-3">DESTINATION / ORIGINE</div>
-          <div className="col-span-2">PROGRAMMÉ</div>
-          <div className="col-span-2">PRÉVU</div>
-          <div className="col-span-2">STATUT</div>
+      {currentAdMode === 'full-screen' ? (
+        /* Mode FULL-SCREEN : Pub en plein écran, vols masqués */
+        <div className="fixed inset-0 top-20 z-40">
+          <AdCarousel 
+            airportCode={airportCode} 
+            onDisplayModeChange={setCurrentAdMode}
+          />
         </div>
-
-        {/* Départs */}
-        <div>
-          <div className="display-section-header">
-            <Plane className="h-6 w-6" />
-            <span>Départs</span>
+      ) : currentAdMode === 'half-screen' ? (
+        /* Mode HALF-SCREEN : Split 50/50 */
+        <div className="flex h-[calc(100vh-80px)]">
+          <div className="w-1/2 flex items-center justify-center bg-slate-900">
+            <AdCarousel 
+              airportCode={airportCode} 
+              onDisplayModeChange={setCurrentAdMode}
+            />
           </div>
-
-          {visibleDepartures.length === 0 ? (
-            <div className="display-empty py-8">
-              <p className="text-lg">Aucun départ</p>
-            </div>
-          ) : (
-            <div>
-              {visibleDepartures.map((flight, index) => (
-                <FlightBoardRow
-                  key={flight._id}
-                  flight={flight}
-                  type="departure"
-                  index={index}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Arrivées */}
-        <div>
-          <div className="display-section-header">
-            <Plane className="h-6 w-6 transform rotate-180" />
-            <span>Arrivées</span>
+          <div className="w-1/2 overflow-auto">
+            {renderFlightsList()}
           </div>
-
-          {visibleArrivals.length === 0 ? (
-            <div className="display-empty py-8">
-              <p className="text-lg">Aucune arrivée</p>
-            </div>
-          ) : (
-            <div>
-              {visibleArrivals.map((flight, index) => (
-                <FlightBoardRow
-                  key={flight._id}
-                  flight={flight}
-                  type="arrival"
-                  index={index}
-                />
-              ))}
-            </div>
-          )}
         </div>
-      </div>
+      ) : (
+        /* Mode NORMAL : Petit carrousel + vols */
+        <>
+          <div className="px-6 py-3">
+            <AdCarousel 
+              className="h-48" 
+              airportCode={airportCode} 
+              onDisplayModeChange={setCurrentAdMode}
+            />
+          </div>
+          {renderFlightsList()}
+        </>
+      )}
     </div>
   );
 };

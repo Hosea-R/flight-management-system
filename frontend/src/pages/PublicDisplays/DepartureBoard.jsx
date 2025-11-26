@@ -18,21 +18,18 @@ const DepartureBoard = () => {
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [airportName, setAirportName] = useState('');
+  const [currentAdMode, setCurrentAdMode] = useState(null);
 
-  // Appliquer le filtrage et le tri
   const visibleFlights = useFlightFiltering(flights);
 
   useEffect(() => {
     fetchDepartures();
-    // Rafraîchir toutes les 30 secondes (fallback si Socket.io échoue)
     const interval = setInterval(fetchDepartures, 30000);
     return () => clearInterval(interval);
   }, [airportCode]);
 
-  // Écouter les mises à jour temps réel
   useEffect(() => {
     if (socket && airportCode) {
-      // Rejoindre la room de l'aéroport
       if (socket.isConnected) {
         socket.joinAirport(airportCode.toUpperCase());
       }
@@ -69,9 +66,6 @@ const DepartureBoard = () => {
         socket.off('flight:updated', handleFlightUpdate);
         socket.off('flight:statusChanged', handleFlightUpdate);
         socket.off('flight:deleted', handleFlightDelete);
-        // Ne pas quitter la room ici si on navigue vers une autre page du même aéroport
-        // Mais pour l'instant c'est plus sûr de quitter
-        // socket.leaveAirport(airportCode.toUpperCase());
       };
     }
   }, [socket, airportCode]);
@@ -94,6 +88,36 @@ const DepartureBoard = () => {
     }
   };
 
+  const renderFlightsList = () => (
+    <div className="display-scroll-container">
+      <div className="display-table-header">
+        <div className="col-span-3">VOL</div>
+        <div className="col-span-3">DESTINATION</div>
+        <div className="col-span-2">PROGRAMMÉ</div>
+        <div className="col-span-2">DÉPART PRÉVU</div>
+        <div className="col-span-2">STATUT</div>
+      </div>
+
+      {visibleFlights.length === 0 ? (
+        <div className="display-empty">
+          <Plane className="h-24 w-24 mb-4 opacity-50" />
+          <p className="text-2xl">Aucun départ prévu pour aujourd'hui</p>
+        </div>
+      ) : (
+        <div>
+          {visibleFlights.map((flight, index) => (
+            <FlightBoardRow
+              key={flight._id}
+              flight={flight}
+              type="departure"
+              index={index}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="display-container">
@@ -115,43 +139,39 @@ const DepartureBoard = () => {
         type="departures"
       />
 
-      {/* Carrousel publicitaire */}
-      <div className="px-6 py-3">
-        <AdCarousel className="h-48" />
-      </div>
-
-      <div className="display-scroll-container">
-        {/* En-têtes de colonnes */}
-        <div className="display-table-header">
-          <div className="col-span-3">VOL</div>
-          <div className="col-span-3">DESTINATION</div>
-          <div className="col-span-2">PROGRAMMÉ</div>
-          <div className="col-span-2">DÉPART PRÉVU</div>
-          <div className="col-span-2">STATUT</div>
+      {currentAdMode === 'full-screen' ? (
+        <div className="fixed inset-0 top-20 z-40">
+          <AdCarousel 
+            airportCode={airportCode} 
+            onDisplayModeChange={setCurrentAdMode}
+          />
         </div>
-
-        {/* Lignes de vols */}
-        {visibleFlights.length === 0 ? (
-          <div className="display-empty">
-            <Plane className="h-24 w-24 mb-4 opacity-50" />
-            <p className="text-2xl">Aucun départ prévu pour aujourd'hui</p>
+      ) : currentAdMode === 'half-screen' ? (
+        <div className="flex h-[calc(100vh-80px)]">
+          <div className="w-1/2 flex items-center justify-center bg-slate-900">
+            <AdCarousel 
+              airportCode={airportCode} 
+              onDisplayModeChange={setCurrentAdMode}
+            />
           </div>
-        ) : (
-          <div>
-            {visibleFlights.map((flight, index) => (
-              <FlightBoardRow
-                key={flight._id}
-                flight={flight}
-                type="departure"
-                index={index}
-              />
-            ))}
+          <div className="w-1/2 overflow-auto">
+            {renderFlightsList()}
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className="px-6 py-3">
+            <AdCarousel 
+              className="h-48" 
+              airportCode={airportCode} 
+              onDisplayModeChange={setCurrentAdMode}
+            />
+          </div>
+          {renderFlightsList()}
+        </>
+      )}
     </div>
   );
 };
 
 export default DepartureBoard;
-
