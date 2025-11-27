@@ -170,46 +170,44 @@ const GeneralBoard = () => {
 
   return (
     <div className="display-container">
-      <BoardHeader
-        airportCode={airportCode.toUpperCase()}
-        airportName={airportName}
-        type="general"
-      />
+      {/* En-tête caché en mode full-screen */}
+      {currentAdMode !== 'full-screen' && (
+        <BoardHeader
+          airportCode={airportCode.toUpperCase()}
+          airportName={airportName}
+          type="general"
+        />
+      )}
 
-      {currentAdMode === 'full-screen' ? (
-        /* Mode FULL-SCREEN : Pub en plein écran, vols masqués */
-        <div className="fixed inset-0 top-20 z-40">
+      <div className={
+        currentAdMode === 'full-screen' 
+          ? "fixed inset-0 z-50" // Full-screen : occupe tout l'écran
+          : currentAdMode === 'half-screen'
+          ? "flex h-[calc(100vh-80px)]"
+          : "flex flex-col"
+      }>
+        {/* Zone publicitaire unique */}
+        <div className={
+          currentAdMode === 'full-screen'
+            ? "w-full h-full"
+            : currentAdMode === 'half-screen'
+            ? "w-1/2 flex items-center justify-center bg-slate-900"
+            : "px-6 py-3"
+        }>
           <AdCarousel 
+            className={currentAdMode === 'full-screen' ? 'w-full h-full' : currentAdMode === 'half-screen' ? 'w-full h-full' : 'h-48'}
             airportCode={airportCode} 
             onDisplayModeChange={setCurrentAdMode}
           />
         </div>
-      ) : currentAdMode === 'half-screen' ? (
-        /* Mode HALF-SCREEN : Split 50/50 */
-        <div className="flex h-[calc(100vh-80px)]">
-          <div className="w-1/2 flex items-center justify-center bg-slate-900">
-            <AdCarousel 
-              airportCode={airportCode} 
-              onDisplayModeChange={setCurrentAdMode}
-            />
-          </div>
-          <div className="w-1/2 overflow-auto">
+
+        {/* Zone des vols (cachée en mode full-screen) */}
+        {currentAdMode !== 'full-screen' && (
+          <div className={currentAdMode === 'half-screen' ? "w-1/2 overflow-auto" : "flex-1"}>
             {renderFlightsList()}
           </div>
-        </div>
-      ) : (
-        /* Mode NORMAL : Petit carrousel + vols */
-        <>
-          <div className="px-6 py-3">
-            <AdCarousel 
-              className="h-48" 
-              airportCode={airportCode} 
-              onDisplayModeChange={setCurrentAdMode}
-            />
-          </div>
-          {renderFlightsList()}
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 };

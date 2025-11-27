@@ -405,8 +405,11 @@ advertisementSchema.methods.canDisplay = function() {
   // Vérifier quota du contrat
   if (this.isQuotaReached()) return false;
   
-  // Vérifier statut du contrat
-  if (this.contract?.status && this.contract.status !== 'active') return false;
+  // Vérifier statut du contrat - bloquer seulement les statuts explicitement invalides
+  // Permet l'affichage si: pas de contrat, pas de statut, 'draft', 'active', ou 'pending-renewal'
+  if (this.contract?.status && ['cancelled', 'expired'].includes(this.contract.status)) {
+    return false;
+  }
   
   // Vérifier quota d'affichages automatique
   if (this.displayLimit && this.currentDisplays >= this.displayLimit) return false;

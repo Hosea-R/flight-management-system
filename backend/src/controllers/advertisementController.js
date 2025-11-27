@@ -73,9 +73,26 @@ exports.getActiveAdvertisements = async (req, res) => {
     }
     
     const advertisements = await Advertisement.getActiveForAirport(airportCode);
+    logger.info(`Found ${advertisements.length} advertisements for airport ${airportCode}`);
     
     // Filtrer côté serveur les pubs qui peuvent être affichées
-    const displayableAds = advertisements.filter(ad => ad.canDisplay());
+    const displayableAds = advertisements.filter(ad => {
+      const canDisplay = ad.canDisplay();
+      if (!canDisplay) {
+        logger.debug(`Ad ${ad._id} (${ad.title}) cannot be displayed:`, {
+          isActive: ad.isActive,
+          isValidAt: ad.isValidAt(),
+          isQuotaReached: ad.isQuotaReached(),
+          contractStatus: ad.contract?.status,
+          displayLimit: ad.displayLimit,
+          currentDisplays: ad.currentDisplays,
+          isWithinDisplayHours: ad.isWithinDisplayHours()
+        });
+      }
+      return canDisplay;
+    });
+    
+    logger.info(`${displayableAds.length} displayable ads after filtering`);
     
     res.json({
       success: true,

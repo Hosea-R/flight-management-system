@@ -29,7 +29,7 @@ const server = http.createServer(app);
 // Configurer Socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.SOCKET_CORS_ORIGIN || 'http://localhost:5173',
+    origin: process.env.SOCKET_CORS_ORIGIN || ['http://localhost:5173', 'http://localhost:5174'],
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -41,7 +41,7 @@ app.use(sanitizeData);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: process.env.CLIENT_URL || ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']

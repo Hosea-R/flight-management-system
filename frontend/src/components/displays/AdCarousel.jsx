@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import advertisementService from '../../services/advertisementService';
 import socketService from '../../services/socket';
@@ -9,6 +9,8 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isResting, setIsResting] = useState(false); // État de repos entre affichages
+  const prevDisplayModeRef = useRef(null);
 
   useEffect(() => {
     if (!airportCode) {
@@ -32,28 +34,48 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
     socketService.on('advertisement:updated', handleAdUpdate);
     socketService.on('advertisement:deleted', handleAdUpdate);
 
+    // Vérification périodique toutes les 60 secondes pour les plages horaires
+    const pollInterval = setInterval(() => {
+      console.log('🔄 Vérification périodique des publicités (plage horaire, quotas...)');
+      fetchAdvertisements();
+    }, 60000); // 60 secondes
+
     return () => {
       socketService.off('advertisement:created', handleAdUpdate);
       socketService.off('advertisement:updated', handleAdUpdate);
       socketService.off('advertisement:deleted', handleAdUpdate);
       socketService.leaveAirport(airportCode);
+      clearInterval(pollInterval);
     };
   }, [airportCode]);
 
   // Notifier le parent du displayMode de la pub actuelle
   useEffect(() => {
-    if (advertisements.length > 0 && onDisplayModeChange) {
+    if (!onDisplayModeChange) return;
+
+    let newMode = null;
+    // Pendant la période de repos, considérer qu'il n'y a pas de pub à afficher
+    if (advertisements.length > 0 && !isResting) {
       const currentAd = advertisements[currentIndex];
-      const mode = currentAd?.displayMode || 'half-screen';
-      onDisplayModeChange(mode);
-    } else if (advertisements.length === 0 && onDisplayModeChange) {
-      // Aucune pub = mode normal (pas de pub)
-      onDisplayModeChange(null);
+      newMode = currentAd?.displayMode || 'half-screen';
     }
-  }, [currentIndex, advertisements, onDisplayModeChange]);
+
+    // Appeler onDisplayModeChange UNIQUEMENT si le mode a changé
+    // Ne pas appeler avec null si on n'avait pas encore de mode (évite de cacher pendant le chargement initial)
+    if (prevDisplayModeRef.current !== newMode) {
+      // Si on passe de null à null (chargement initial sans pubs), ne rien faire
+      if (prevDisplayModeRef.current === null && newMode === null) {
+        return;
+      }
+      
+      console.log(`🎨 Changement de mode d'affichage: ${prevDisplayModeRef.current} → ${newMode}`);
+      prevDisplayModeRef.current = newMode;
+      onDisplayModeChange(newMode);
+    }
+  }, [currentIndex, advertisements, onDisplayModeChange, isResting]);
 
   useEffect(() => {
-    if (advertisements.length === 0) return;
+    if (advertisements.length === 0 || isResting) return;
 
     const currentAd = advertisements[currentIndex];
     setTimeLeft(currentAd?.duration || 10);
@@ -67,7 +89,19 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          nextSlide();
+          // Si une seule pub, entrer en période de repos
+          if (advertisements.length === 1) {
+            console.log('💤 Publicité unique terminée - repos de 10 secondes');
+            setIsResting(true);
+            // Réafficher après 10 secondes
+            setTimeout(() => {
+              console.log('🔄 Fin du repos - réaffichage de la publicité');
+              setIsResting(false);
+            }, 10000);
+          } else {
+            // Plusieurs pubs : passer à la suivante
+            nextSlide();
+          }
           return 0;
         }
         return prev - 1;
@@ -75,7 +109,7 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentIndex, advertisements]);
+  }, [currentIndex, advertisements, isResting]);
 
   const fetchAdvertisements = async () => {
     if (!airportCode) return;
