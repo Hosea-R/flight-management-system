@@ -3,9 +3,7 @@ import api from './api';
 const advertisementService = {
   // Récupérer toutes les publicités (admin)
   getAllAdvertisements: async (filters = {}) => {
-    const params = new URLSearchParams(filters).toString();
-    const response = await api.get(`/advertisements${params ? `?${params}` : ''}`);
-    // L'API retourne { success, data, count }, on retourne directement data
+    const response = await api.get('/advertisements', { params: filters });
     return response.data.data || [];
   },
 
@@ -19,7 +17,6 @@ const advertisementService = {
   // Récupérer une publicité par ID
   getAdvertisementById: async (id) => {
     const response = await api.get(`/advertisements/${id}`);
-    // L'API retourne { success, data }, on retourne directement data
     return response.data.data;
   },
 
@@ -30,7 +27,6 @@ const advertisementService = {
         'Content-Type': 'multipart/form-data'
       }
     });
-    // L'API retourne { success, data, message }, on retourne directement data
     return response.data.data;
   },
 
@@ -41,7 +37,6 @@ const advertisementService = {
         'Content-Type': 'multipart/form-data'
       }
     });
-    // L'API retourne { success, data, message }, on retourne directement data
     return response.data.data;
   },
 
@@ -60,7 +55,6 @@ const advertisementService = {
   // Récupérer les alertes
   getAlerts: async () => {
     const response = await api.get('/advertisements/alerts');
-    // L'API retourne { success, data: { expiring, quotaReached, expired }, count }
     return response.data.data;
   },
 
@@ -75,7 +69,7 @@ const advertisementService = {
         'Content-Type': 'multipart/form-data'
       }
     });
-    return response.data.data; // Retourne liste attachments
+    return response.data.data;
   },
 
   // Supprimer un PDF de contrat

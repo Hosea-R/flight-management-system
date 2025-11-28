@@ -9,8 +9,10 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [isResting, setIsResting] = useState(false); // État de repos entre affichages
+  const [isResting, setIsResting] = useState(false);
+  const [restTimeLeft, setRestTimeLeft] = useState(0);
   const prevDisplayModeRef = useRef(null);
+  const lastDisplayTimeRef = useRef({}); // Stocke la dernière fois que chaque pub a été affichée
 
   useEffect(() => {
     if (!airportCode) {
@@ -21,10 +23,8 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
 
     fetchAdvertisements();
 
-    // Rejoindre la room de l'aéroport
     socketService.joinAirport(airportCode);
 
-    // Écouter les mises à jour
     const handleAdUpdate = () => {
       console.log('🔄 Mise à jour des publicités reçue via Socket.io');
       fetchAdvertisements();
@@ -34,11 +34,10 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
     socketService.on('advertisement:updated', handleAdUpdate);
     socketService.on('advertisement:deleted', handleAdUpdate);
 
-    // Vérification périodique toutes les 60 secondes pour les plages horaires
     const pollInterval = setInterval(() => {
       console.log('🔄 Vérification périodique des publicités (plage horaire, quotas...)');
       fetchAdvertisements();
-    }, 60000); // 60 secondes
+    }, 60000);
 
     return () => {
       socketService.off('advertisement:created', handleAdUpdate);
@@ -49,21 +48,16 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
     };
   }, [airportCode]);
 
-  // Notifier le parent du displayMode de la pub actuelle
   useEffect(() => {
     if (!onDisplayModeChange) return;
 
     let newMode = null;
-    // Pendant la période de repos, considérer qu'il n'y a pas de pub à afficher
     if (advertisements.length > 0 && !isResting) {
       const currentAd = advertisements[currentIndex];
       newMode = currentAd?.displayMode || 'half-screen';
     }
 
-    // Appeler onDisplayModeChange UNIQUEMENT si le mode a changé
-    // Ne pas appeler avec null si on n'avait pas encore de mode (évite de cacher pendant le chargement initial)
     if (prevDisplayModeRef.current !== newMode) {
-      // Si on passe de null à null (chargement initial sans pubs), ne rien faire
       if (prevDisplayModeRef.current === null && newMode === null) {
         return;
       }
@@ -78,28 +72,34 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
     if (advertisements.length === 0 || isResting) return;
 
     const currentAd = advertisements[currentIndex];
-    setTimeLeft(currentAd?.duration || 10);
+    const adDuration = currentAd?.duration || 10;
+    setTimeLeft(adDuration);
 
-    // Incrémenter le compteur de vues
+    // Marquer le temps d'affichage pour cette pub
     if (currentAd?._id) {
+      lastDisplayTimeRef.current[currentAd._id] = Date.now();
       advertisementService.incrementViewCount(currentAd._id).catch(() => {});
     }
 
-    // Timer pour passer à la pub suivante
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          // Si une seule pub, entrer en période de repos
           if (advertisements.length === 1) {
-            console.log('💤 Publicité unique terminée - repos de 10 secondes');
+            // Calculer le temps de repos selon minDisplayInterval
+            const minInterval = (currentAd?.minDisplayInterval || 0) * 1000; // Convertir en ms
+            const restDuration = Math.max(minInterval, 10000); // Minimum 10s
+            
+            console.log(`💤 Publicité unique terminée - repos de ${restDuration/1000} secondes (minDisplayInterval: ${currentAd?.minDisplayInterval || 0}s)`);
+            
+            setRestTimeLeft(Math.floor(restDuration / 1000));
             setIsResting(true);
-            // Réafficher après 10 secondes
+            
             setTimeout(() => {
               console.log('🔄 Fin du repos - réaffichage de la publicité');
               setIsResting(false);
-            }, 10000);
+              setRestTimeLeft(0);
+            }, restDuration);
           } else {
-            // Plusieurs pubs : passer à la suivante
             nextSlide();
           }
           return 0;
@@ -111,16 +111,27 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
     return () => clearInterval(timer);
   }, [currentIndex, advertisements, isResting]);
 
+  // Timer pour le temps de repos
+  useEffect(() => {
+    if (!isResting || restTimeLeft <= 0) return;
+
+    const restTimer = setInterval(() => {
+      setRestTimeLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(restTimer);
+  }, [isResting, restTimeLeft]);
+
   const fetchAdvertisements = async () => {
     if (!airportCode) return;
 
     try {
-      // Le service retourne maintenant { success, data, count, emergencyMode }
+      console.log('📢 Fetch publicités pour:', airportCode);
+      
       const response = await advertisementService.getActiveAdvertisements(airportCode);
       
-      console.log('📢 Réponse API publicités:', response);
+      console.log('📢 Réponse API complète:', response);
       
-      // Vérifier le mode urgence
       if (response.emergencyMode) {
         console.warn('⚠️ Mode urgence activé - publicités désactivées');
         setAdvertisements([]);
@@ -128,20 +139,73 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
         return;
       }
       
-      // Récupérer TOUTES les pubs (ne plus filtrer par displayMode)
       const ads = response.data || [];
       
       console.log(`📢 ${ads.length} publicité(s) reçue(s) pour ${airportCode}`);
       
-      // Log détaillé de chaque pub
-      ads.forEach((ad, index) => {
+      // NE PLUS FILTRER PAR displayMode ICI - Afficher toutes les pubs actives
+      console.log('🔍 Publicités avant filtrage:', ads.map(ad => ({
+        title: ad.title,
+        displayMode: ad.displayMode,
+        isActive: ad.isActive,
+        displayLimit: ad.displayLimit,
+        currentDisplays: ad.currentDisplays
+      })));
+
+      // Vérifier si les pubs respectent leurs contraintes de planification
+      const now = new Date();
+      const validAds = ads.filter(ad => {
+        // Vérifier le quota d'affichages
+        if (ad.displayLimit && ad.currentDisplays >= ad.displayLimit) {
+          console.log(`❌ Pub "${ad.title}" a atteint son quota (${ad.currentDisplays}/${ad.displayLimit})`);
+          return false;
+        }
+
+        // Vérifier l'intervalle minimum entre affichages
+        if (ad.minDisplayInterval && lastDisplayTimeRef.current[ad._id]) {
+          const timeSinceLastDisplay = (Date.now() - lastDisplayTimeRef.current[ad._id]) / 1000; // En secondes
+          if (timeSinceLastDisplay < ad.minDisplayInterval) {
+            const remaining = Math.ceil(ad.minDisplayInterval - timeSinceLastDisplay);
+            console.log(`❌ Pub "${ad.title}" doit attendre ${remaining}s avant réaffichage (minDisplayInterval: ${ad.minDisplayInterval}s)`);
+            return false;
+          }
+        }
+
+        // Vérifier les heures d'affichage
+        if (ad.displayHours && ad.displayHours.startHour !== undefined && ad.displayHours.endHour !== undefined) {
+          const currentHour = now.getHours();
+          const { startHour, endHour } = ad.displayHours;
+          
+          if (startHour <= endHour) {
+            // Plage normale (ex: 8h-18h)
+            if (currentHour < startHour || currentHour >= endHour) {
+              console.log(`❌ Pub "${ad.title}" hors plage horaire (${startHour}h-${endHour}h, actuellement ${currentHour}h)`);
+              return false;
+            }
+          } else {
+            // Plage qui traverse minuit (ex: 22h-6h)
+            if (currentHour < startHour && currentHour >= endHour) {
+              console.log(`❌ Pub "${ad.title}" hors plage horaire nocturne (${startHour}h-${endHour}h, actuellement ${currentHour}h)`);
+              return false;
+            }
+          }
+        }
+
+        console.log(`✅ Pub "${ad.title}" valide pour affichage`);
+        return true;
+      });
+
+      console.log(`📢 ${validAds.length} publicité(s) valide(s) après filtrage`);
+      
+      validAds.forEach((ad, index) => {
         console.log(`  Pub ${index + 1}: "${ad.title}" - displayMode: "${ad.displayMode}"`);
       });
       
-      setAdvertisements(ads);
+      setAdvertisements(validAds);
       setLoading(false);
     } catch (error) {
       console.error('❌ Erreur chargement publicités:', error);
+      console.error('Error details:', error.response?.data || error.message);
       setAdvertisements([]);
       setLoading(false);
     }
@@ -155,21 +219,42 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
     setCurrentIndex((prev) => (prev - 1 + advertisements.length) % advertisements.length);
   };
 
-  if (loading || advertisements.length === 0) {
+  if (loading) {
+    console.log('⏳ AdCarousel: Chargement en cours...');
+    return null;
+  }
+
+  if (advertisements.length === 0) {
+    console.log('📢 AdCarousel: Aucune publicité à afficher');
+    // Notifier le parent qu'il n'y a pas de pub
+    if (onDisplayModeChange && prevDisplayModeRef.current !== null) {
+      prevDisplayModeRef.current = null;
+      onDisplayModeChange(null);
+    }
+    return null;
+  }
+
+  // Pendant le repos, masquer la publicité
+  if (isResting) {
+    console.log(`💤 Mode repos actif (${restTimeLeft}s restantes)`);
+    // Notifier le parent qu'il n'y a pas de pub temporairement
+    if (onDisplayModeChange && prevDisplayModeRef.current !== null) {
+      prevDisplayModeRef.current = null;
+      onDisplayModeChange(null);
+    }
     return null;
   }
 
   const currentAd = advertisements[currentIndex];
+  console.log('📢 Publicité actuelle:', currentAd?.title, 'displayMode:', currentAd?.displayMode);
   
-  // Classes CSS adaptatives selon le mode de la pub actuelle
   const adDisplayMode = currentAd?.displayMode || 'half-screen';
   const containerClasses = adDisplayMode === 'full-screen'
-    ? `w-full h-full ${className}` // Full-screen
-    : `relative bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg ${className}`; // Half-screen ou normal
+    ? `w-full h-full ${className}`
+    : `relative bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg ${className}`;
 
   return (
     <div className={containerClasses}>
-      {/* Contenu de la publicité */}
       <div className="relative h-full">
         {currentAd.type === 'image' && (
           <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
@@ -213,20 +298,21 @@ const AdCarousel = ({ className = '', airportCode, onDisplayModeChange }) => {
               <h3 className={`text-white font-bold ${
                 adDisplayMode === 'full-screen' ? 'text-3xl' : 'text-lg'
               }`}>{currentAd.title}</h3>
-              {advertisements.length > 1 && ( <div className={`flex items-center gap-2 ${
-                adDisplayMode === 'full-screen' ? 'mt-4' : 'mt-2'
-              }`}>
-                {advertisements.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-1 rounded-full transition-all ${
-                      index === currentIndex
-                        ? adDisplayMode === 'full-screen' ? 'w-12 bg-white' : 'w-8 bg-white'
-                        : adDisplayMode === 'full-screen' ? 'w-6 bg-white/40' : 'w-4 bg-white/40'
-                    }`}
-                  />
-                ))}
-              </div>
+              {advertisements.length > 1 && (
+                <div className={`flex items-center gap-2 ${
+                  adDisplayMode === 'full-screen' ? 'mt-4' : 'mt-2'
+                }`}>
+                  {advertisements.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`h-1 rounded-full transition-all ${
+                        index === currentIndex
+                          ? adDisplayMode === 'full-screen' ? 'w-12 bg-white' : 'w-8 bg-white'
+                          : adDisplayMode === 'full-screen' ? 'w-6 bg-white/40' : 'w-4 bg-white/40'
+                      }`}
+                    />
+                  ))}
+                </div>
               )}
             </div>
 
